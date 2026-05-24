@@ -1,0 +1,125 @@
+/* ─── Product Carousel ─── */
+
+.carousel {
+  position: relative;
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--container-padding);
+}
+
+/* Header with title + arrows */
+.carousel__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--space-xl);
+  gap: var(--space-md);
+}
+
+.carousel__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+  line-height: 1.2;
+}
+
+.carousel__subtitle {
+  font-size: var(--fs-small);
+  color: var(--color-text-muted);
+  margin-top: 0.3rem;
+  max-width: 500px;
+}
+
+/* Navigation arrows */
+.carousel__arrows {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.carousel__arrow {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-wood-dark);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.carousel__arrow:hover:not(:disabled) {
+  background: rgba(212, 165, 116, 0.2);
+  border-color: var(--color-accent-gold);
+  transform: scale(1.08);
+}
+
+.carousel__arrow--disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Scrollable track */
+.carousel__track {
+  display: flex;
+  gap: var(--space-lg);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-md);
+
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.carousel__track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel__track > * {
+  scroll-snap-align: start;
+}
+
+/* Edge fade overlays for scroll indication */
+.carousel__fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.3s ease;
+}
+
+.carousel__fade--left {
+  left: 0;
+  background: linear-gradient(to right, rgba(253, 248, 243, 0.7), transparent);
+}
+
+.carousel__fade--right {
+  right: 0;
+  background: linear-gradient(to left, rgba(253, 248, 243, 0.7), transparent);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .carousel__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .carousel__arrows {
+    align-self: flex-end;
+    margin-top: calc(-1 * var(--space-xl));
+  }
+}

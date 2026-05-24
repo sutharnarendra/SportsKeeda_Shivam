@@ -1,0 +1,250 @@
+/* ─── Product Card ─── */
+
+.pcard {
+  flex: 0 0 300px;
+  min-width: 280px;
+  max-width: 320px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.pcard:hover,
+.pcard--hovered {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(92, 61, 46, 0.15);
+  border-color: rgba(212, 165, 116, 0.4);
+}
+
+/* ─── Media Area ─── */
+.pcard__media {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #FAF3EB, #F5E6D3);
+}
+
+.pcard__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+}
+
+.pcard:hover .pcard__image {
+  transform: scale(1.06);
+}
+
+/* Image placeholder when no image is available */
+.pcard__image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #F5E6D3, #EDD9C0);
+}
+
+.pcard__placeholder-icon {
+  width: 50%;
+  height: 50%;
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, rgba(196, 168, 130, 0.4), rgba(212, 165, 116, 0.25));
+  transition: transform 0.4s ease;
+}
+
+.pcard:hover .pcard__placeholder-icon {
+  transform: scale(1.05) rotate(-2deg);
+}
+
+/* Video overlay on hover */
+.pcard__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.05);
+  transition: opacity 0.5s ease, transform 0.6s ease;
+  pointer-events: none;
+}
+
+.pcard__video--active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Video play indicator */
+.pcard__video-indicator {
+  position: absolute;
+  bottom: var(--space-sm);
+  right: var(--space-sm);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.65rem;
+  transition: all 0.3s ease;
+}
+
+.pcard:hover .pcard__video-indicator {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+/* Sale badge (top-right) */
+.pcard__badge {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #C0392B, #E74C3C);
+  color: white;
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.3);
+}
+
+/* Sale tag (top-left) */
+.pcard__sale-tag {
+  position: absolute;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-accent-gold), var(--color-accent-gold-light));
+  color: var(--color-wood-dark);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ─── Info Section ─── */
+.pcard__info {
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+}
+
+.pcard__name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h4);
+  font-weight: var(--fw-semibold);
+  color: var(--color-wood-dark);
+  margin-bottom: 0.2rem;
+  line-height: 1.3;
+}
+
+.pcard__description {
+  font-size: var(--fs-tiny);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: var(--space-md);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Wood Variant Selector ─── */
+.pcard__variants {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.pcard__variant-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(196, 168, 130, 0.3);
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.pcard__variant-btn:hover {
+  border-color: var(--color-accent-gold);
+  background: rgba(212, 165, 116, 0.1);
+}
+
+.pcard__variant-btn--active {
+  border-color: var(--color-accent-gold);
+  background: rgba(212, 165, 116, 0.18);
+  color: var(--color-wood-dark);
+  font-weight: var(--fw-semibold);
+}
+
+.pcard__variant-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.pcard__variant-label {
+  white-space: nowrap;
+}
+
+/* ─── Price Row ─── */
+.pcard__price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pcard__price {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+}
+
+.pcard__price-original {
+  font-size: var(--fs-small);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  font-weight: var(--fw-regular);
+  margin-left: 0.4rem;
+}
+
+.pcard__rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
+  color: var(--color-accent-gold);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .pcard {
+    flex: 0 0 260px;
+    min-width: 240px;
+  }
+
+  .pcard__media {
+    height: 200px;
+  }
+}

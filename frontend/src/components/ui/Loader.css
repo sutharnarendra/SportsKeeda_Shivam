@@ -1,0 +1,75 @@
+/* ─── Loader Screen ─── */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-loader);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+.loader-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loader-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  animation: scaleIn 0.8s ease forwards;
+}
+
+.loader-logo-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  animation: pulse-glow 2s ease-in-out infinite;
+  filter: drop-shadow(0 8px 32px rgba(92, 61, 46, 0.25));
+}
+
+.loader-brand-name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: fadeInUp 0.6s ease 0.4s forwards;
+}
+
+.loader-tagline {
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  color: var(--color-text-muted);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: fadeInUp 0.6s ease 0.7s forwards;
+}
+
+.loader-progress-track {
+  width: 200px;
+  height: 3px;
+  background: var(--color-wood-cream);
+  border-radius: var(--radius-full);
+  margin-top: var(--space-xl);
+  overflow: hidden;
+  opacity: 0;
+  animation: fadeIn 0.5s ease 1s forwards;
+}
+
+.loader-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-wood-dark), var(--color-accent-gold));
+  border-radius: var(--radius-full);
+  width: 0%;
+  transition: width 0.3s ease;
+}

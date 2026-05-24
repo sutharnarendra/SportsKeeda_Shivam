@@ -1,0 +1,287 @@
+/* ─── Shop Page Style System ─── */
+
+.shop-page {
+  padding: 120px 0 var(--space-4xl);
+  min-height: 100vh;
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.shop-container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-2xl);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Shop Header Area */
+.shop-header {
+  margin-bottom: var(--space-2xl);
+  text-align: center;
+}
+
+.shop-title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+  margin-bottom: var(--space-xs);
+}
+
+.shop-subtitle {
+  font-size: var(--fs-medium);
+  color: var(--color-text-muted);
+}
+
+/* Material Quick Filters */
+.shop-quick-filters {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2xl);
+}
+
+.quick-filter-chip {
+  padding: 0.5rem 1.2rem;
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.quick-filter-chip:hover {
+  background: rgba(212, 165, 116, 0.15);
+  border-color: var(--color-accent-gold);
+  color: var(--color-wood-dark);
+}
+
+.quick-filter-chip--active {
+  background: var(--color-wood-dark);
+  color: var(--color-bg-primary);
+  border-color: var(--color-wood-dark);
+}
+
+.quick-filter-chip--active:hover {
+  background: var(--color-wood-dark);
+  color: var(--color-bg-primary);
+  border-color: var(--color-wood-dark);
+}
+
+/* Shop Main Grid Layout */
+.shop-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--space-2xl);
+  align-items: start;
+}
+
+/* Sidebar Filter Panel */
+.shop-sidebar {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  position: sticky;
+  top: 100px;
+  box-shadow: var(--glass-shadow);
+}
+
+.filter-section {
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid rgba(92, 61, 46, 0.08);
+}
+
+.filter-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.filter-title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-medium);
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+  margin-bottom: var(--space-md);
+  text-transform: capitalize;
+}
+
+/* Range input styling */
+.price-range-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.price-range-slider {
+  width: 100%;
+  accent-color: var(--color-accent-gold);
+  cursor: pointer;
+}
+
+.price-range-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+  font-weight: var(--fw-medium);
+}
+
+/* Checkbox lists */
+.filter-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.filter-checkbox-label input {
+  accent-color: var(--color-wood-dark);
+  cursor: pointer;
+}
+
+.filter-checkbox-label:hover {
+  color: var(--color-wood-dark);
+}
+
+/* Sort & Clear buttons */
+.sort-select {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: var(--radius-md);
+  background: white;
+  border: 1px solid rgba(92, 61, 46, 0.15);
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: var(--color-accent-gold);
+}
+
+.btn-clear-filters {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid var(--color-wood-dark);
+  color: var(--color-wood-dark);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.btn-clear-filters:hover {
+  background: var(--color-wood-dark);
+  color: var(--color-bg-primary);
+}
+
+/* Shop Products Grid Area */
+.shop-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.results-count {
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+  font-weight: var(--fw-medium);
+}
+
+.search-indicator {
+  font-size: var(--fs-medium);
+  color: var(--color-wood-dark);
+  font-weight: var(--fw-semibold);
+}
+
+/* Products grid */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-xl);
+}
+
+/* Empty State */
+.shop-empty {
+  text-align: center;
+  padding: var(--space-4xl) 0;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  max-width: 600px;
+  margin: var(--space-2xl) auto;
+  box-shadow: var(--glass-shadow);
+}
+
+.shop-empty-title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h3);
+  color: var(--color-wood-dark);
+  margin-bottom: var(--space-sm);
+}
+
+.shop-empty-desc {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xl);
+}
+
+.btn-reset-empty {
+  padding: 0.8rem 2rem;
+  border-radius: var(--radius-full);
+  background: var(--color-wood-dark);
+  color: var(--color-bg-primary);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-base);
+}
+
+.btn-reset-empty:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(92, 61, 46, 0.2);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 992px) {
+  .shop-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-sidebar {
+    position: static;
+    margin-bottom: var(--space-xl);
+  }
+}

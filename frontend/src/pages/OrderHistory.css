@@ -1,0 +1,259 @@
+/* ─── Order History Style System ─── */
+
+.order-history-page {
+  padding: 140px 0 var(--space-4xl);
+  min-height: 100vh;
+  background: transparent;
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.order-history-container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-2xl);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+}
+
+.order-history-title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.order-history-subtitle {
+  font-size: var(--fs-small);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2xl);
+  text-align: center;
+  max-width: 580px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Orders List cards */
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  width: 100%;
+}
+
+.order-card-wrapper {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 15px rgba(92, 61, 46, 0.03);
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.order-card-wrapper:hover {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(92, 61, 46, 0.2);
+  box-shadow: 0 6px 20px rgba(92, 61, 46, 0.06);
+}
+
+.order-card-header {
+  background: rgba(92, 61, 46, 0.05);
+  border-bottom: 1px solid rgba(92, 61, 46, 0.08);
+  padding: var(--space-md) var(--space-xl);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.header-meta-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meta-val {
+  font-size: var(--fs-small);
+  color: var(--color-wood-dark);
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-badge--processing {
+  background: rgba(188, 143, 85, 0.12);
+  color: #a07840;
+  border: 1px solid rgba(188, 143, 85, 0.25);
+}
+
+.status-badge--shipped {
+  background: rgba(74, 124, 89, 0.12);
+  color: var(--color-accent-green);
+  border: 1px solid rgba(74, 124, 89, 0.25);
+}
+
+/* Items in card */
+.order-card-items {
+  padding: var(--space-md) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.order-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid rgba(92, 61, 46, 0.06);
+  gap: var(--space-md);
+}
+
+.order-item-row:last-child {
+  border-bottom: none;
+}
+
+.item-thumbnail {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: white;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-placeholder {
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-medium);
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-bold);
+  margin-bottom: 2px;
+}
+
+.item-name a {
+  text-decoration: none;
+  color: var(--color-wood-dark);
+  transition: color var(--transition-base);
+}
+
+.item-name a:hover {
+  color: var(--color-accent-gold);
+}
+
+.item-specs {
+  font-size: var(--fs-tiny);
+  color: var(--color-text-muted);
+}
+
+/* Review Dialog Modal overlay styling */
+.review-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+.review-modal-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.review-modal-title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+  margin-bottom: 4px;
+}
+
+/* Enhanced Review input styling */
+.review-textarea {
+  min-height: 120px;
+  max-height: 240px;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.4) !important;
+  border: 1px solid rgba(92, 61, 46, 0.15) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px var(--space-md) !important;
+  font-size: var(--fs-small) !important;
+  color: var(--color-wood-dark) !important;
+  backdrop-filter: var(--glass-blur);
+  transition: all var(--transition-base) !important;
+}
+
+.review-textarea:focus {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: var(--color-accent-gold) !important;
+  box-shadow: 0 0 0 3px rgba(188, 143, 85, 0.15) !important;
+  outline: none;
+}
+
+.review-star-icon:hover {
+  transform: scale(1.22);
+  filter: drop-shadow(0 0 8px rgba(188, 143, 85, 0.6));
+}
+
+.review-star-btn:active .review-star-icon {
+  transform: scale(0.92);
+}
+
