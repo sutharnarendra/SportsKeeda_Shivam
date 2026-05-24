@@ -555,8 +555,204 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 992px) {
+  .product-detail-page {
+    padding: 140px 0 var(--space-3xl); /* Pushes content down cleanly below the fixed main navigation bar! */
+  }
+
   .detail-layout {
     grid-template-columns: 1fr;
     gap: var(--space-xl);
   }
+  
+  .detail-container {
+    padding: var(--space-lg);
+  }
 }
+
+@media (max-width: 768px) {
+  .product-detail-page {
+    padding: 130px 0 var(--space-2xl); /* Placed safely below the bar */
+  }
+  
+  .detail-container {
+    padding: 1.2rem;
+    border-radius: var(--radius-md);
+  }
+  
+  .detail-info h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.2;
+    margin-bottom: var(--space-xs);
+  }
+  
+  .specs-table td {
+    padding: 0.65rem 0 !important;
+    font-size: 12px !important;
+  }
+  
+  .specs-label {
+    width: 40% !important;
+  }
+  
+  /* Keep price box and badge aligned */
+  .price-box {
+    margin-bottom: var(--space-md) !important;
+  }
+  
+  .detail-actions-section {
+    gap: var(--space-sm) !important;
+  }
+}
+
+/* ─── Customer Reviews — Horizontal Scroll Layout ─── */
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(92, 61, 46, 0.08);
+  padding-bottom: 10px;
+}
+
+.reviews-count-badge {
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-bold);
+  background: rgba(92, 61, 46, 0.06);
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Horizontal scrolling review track */
+.reviews-scroll-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-sm);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.reviews-scroll-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Individual review card */
+.review-scroll-card {
+  flex: 0 0 280px;
+  min-width: 280px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 12px rgba(92, 61, 46, 0.02);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.review-author {
+  font-weight: var(--fw-bold);
+  color: var(--color-wood-dark);
+  font-size: var(--fs-small);
+}
+
+.review-date {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-left: 10px;
+}
+
+.review-stars {
+  color: var(--color-accent-gold);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+
+/* Review text — clamped to 3 lines by default */
+.review-card-text {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* When expanded, show full text */
+.review-card-text--expanded {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  overflow: visible !important;
+}
+
+/* Show more/less toggle button */
+.review-show-more {
+  background: none;
+  border: none;
+  color: var(--color-accent-gold);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  padding: 4px 0 0 0;
+  text-align: left;
+  transition: color var(--transition-base);
+}
+
+.review-show-more:hover {
+  color: var(--color-wood-dark);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .reviews-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .review-scroll-card {
+    flex: 0 0 200px !important;
+    min-width: 200px !important;
+    padding: 12px !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .review-author {
+    font-size: 11px !important;
+  }
+
+  .review-date {
+    font-size: 9px !important;
+    margin-left: 6px !important;
+  }
+
+  .review-stars {
+    font-size: 11px !important;
+  }
+
+  .review-card-text {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+
+  .review-show-more {
+    font-size: 10px !important;
+  }
+}
+
+
+

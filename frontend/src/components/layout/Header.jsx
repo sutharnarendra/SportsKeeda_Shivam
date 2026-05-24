@@ -12,6 +12,8 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const cartItems = useCartStore((state) => state.items);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -29,6 +31,11 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close mobile drawer on route transition
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   const handleSearchSubmit = (e) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
@@ -38,10 +45,10 @@ export default function Header() {
   };
 
   return (
-    <header className={`header ${scrolled ? 'scrolled' : ''}`} id="main-header">
+    <header className={`header ${scrolled ? 'scrolled' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`} id="main-header">
       <div className="header-inner">
         {/* Logo — Top Left */}
-        <Link to="/" className="header-logo" id="header-logo">
+        <Link to="/" state={{ restartAnimation: true }} className="header-logo" id="header-logo">
           <img
             src="/images/bicep.png"
             alt="Yatra X Logo"
@@ -50,9 +57,9 @@ export default function Header() {
           <span className="logo-text">Yatra X</span>
         </Link>
 
-        {/* Center Navigation */}
+        {/* Center Navigation (Desktop only) */}
         <nav className="header-nav" id="header-nav">
-          <NavLink to="/" end>Home</NavLink>
+          <NavLink to="/" state={{ skipAnimation: true }} end>Home</NavLink>
           <NavLink to="/shop">Shop</NavLink>
           <NavLink to="/order-history">Order History</NavLink>
         </nav>
@@ -119,13 +126,25 @@ export default function Header() {
           {/* Mobile Menu Toggle */}
           <button
             className="header-menu-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
             id="btn-menu-toggle"
           >
-            <Menu size={22} />
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
+
+      {/* Slide-Down Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="header-mobile-drawer animate-slide-down">
+          <nav className="mobile-nav">
+            <NavLink to="/" state={{ skipAnimation: true }} end onClick={() => setMobileMenuOpen(false)}>Home</NavLink>
+            <NavLink to="/shop" onClick={() => setMobileMenuOpen(false)}>Shop</NavLink>
+            <NavLink to="/order-history" onClick={() => setMobileMenuOpen(false)}>Order History</NavLink>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

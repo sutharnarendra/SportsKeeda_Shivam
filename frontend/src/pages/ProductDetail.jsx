@@ -8,6 +8,41 @@ import { useOrderStore } from '../store/orderStore';
 import ProductCarousel from '../components/ui/ProductCarousel';
 import './ProductDetail.css';
 
+/**
+ * ReviewCard — Individual review with expandable "Show more" for long text
+ */
+function ReviewCard({ rev }) {
+  const [expanded, setExpanded] = useState(false);
+  const TEXT_LIMIT = 60; // Characters before showing "Show more"
+  const isLong = rev.text.length > TEXT_LIMIT;
+
+  return (
+    <div className="review-scroll-card animate-fade-up">
+      <div className="review-card-top">
+        <div>
+          <span className="review-author">{rev.author}</span>
+          <span className="review-date">{rev.date}</span>
+        </div>
+        <div className="review-stars">
+          {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+        </div>
+      </div>
+      <p className={`review-card-text ${expanded ? 'review-card-text--expanded' : ''}`}>
+        &ldquo;{rev.text}&rdquo;
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          className="review-show-more"
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -363,9 +398,9 @@ export default function ProductDetail() {
 
         {/* Dynamic Handcrafted Customer Reviews Section */}
         <section className="detail-specs-area animate-fade-up stagger-4" style={{ marginTop: '3rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(92, 61, 46, 0.08)', paddingBottom: '10px' }}>
+          <div className="reviews-header">
             <h2 className="detail-name" style={{ fontSize: 'var(--fs-h3)', margin: 0 }}>Customer Reviews</h2>
-            <span style={{ fontSize: 'var(--fs-tiny)', fontWeight: 'bold', background: 'rgba(92, 61, 46, 0.06)', padding: '4px 10px', borderRadius: '4px' }}>
+            <span className="reviews-count-badge">
               {productReviews.length} Verified {productReviews.length === 1 ? 'Review' : 'Reviews'}
             </span>
           </div>
@@ -377,22 +412,9 @@ export default function ProductDetail() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div className="reviews-scroll-track">
               {productReviews.map((rev) => (
-                <div key={rev.id} style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.35)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 12px rgba(92, 61, 46, 0.02)' }} className="animate-fade-up">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
-                    <div>
-                      <span style={{ fontWeight: 'bold', color: 'var(--color-wood-dark)', fontSize: 'var(--fs-small)' }}>{rev.author}</span>
-                      <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginLeft: '10px' }}>{rev.date}</span>
-                    </div>
-                    <div style={{ color: 'var(--color-accent-gold)', fontSize: 'var(--fs-small)' }}>
-                      {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
-                    </div>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 'var(--fs-small)', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
-                    &ldquo;{rev.text}&rdquo;
-                  </p>
-                </div>
+                <ReviewCard key={rev.id} rev={rev} />
               ))}
             </div>
           )}

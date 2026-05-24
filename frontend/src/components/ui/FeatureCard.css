@@ -134,7 +134,7 @@
 
 
 /* ─── Responsive ─── */
-@media (max-width: 1200px) {
+@media (max-width: 1200px) and (min-width: 769px) {
   .feature-card:nth-child(5),
   .feature-card:nth-child(6) {
     display: none;
@@ -142,22 +142,95 @@
 }
 
 @media (max-width: 768px) {
+  /* Switch to a bottom-anchored grid: 3 cards per row, 2 rows */
   .feature-cards-container {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-md);
-    padding: var(--space-xl) var(--container-padding);
+    position: absolute !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
   }
 
   .feature-card {
-    position: static;
-    max-width: 100%;
-    min-width: auto;
+    position: static !important;
+    pointer-events: auto !important;
+    padding: 8px 10px !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(92, 61, 46, 0.06) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
   }
 
+  .feature-card:hover {
+    transform: none !important;
+  }
+
+  .feature-card:nth-child(3):hover,
+  .feature-card:nth-child(4):hover {
+    transform: none !important;
+  }
+
+  .feature-card-icon {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 5px !important;
+    margin-bottom: 4px !important;
+    padding: 0 !important;
+  }
+
+  .feature-card-icon svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .feature-card-title {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    margin-bottom: 2px !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+  }
+
+  .feature-card-desc {
+    display: block !important; /* Content stays visible! */
+    font-size: 8px !important;
+    line-height: 1.3 !important;
+    color: var(--color-text-muted) !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  /* Reset all absolute positioning from desktop nth-child rules */
+  .feature-card:nth-child(1),
+  .feature-card:nth-child(2),
+  .feature-card:nth-child(3),
+  .feature-card:nth-child(4),
   .feature-card:nth-child(5),
   .feature-card:nth-child(6) {
-    display: block;
+    top: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    display: flex !important;
   }
 }
+

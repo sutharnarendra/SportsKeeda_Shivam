@@ -18,6 +18,8 @@ export default function Shop() {
   const [sortBy, setSortBy] = useState('best'); // 'best', 'price-asc', 'price-desc', 'rating'
   const [onlySale, setOnlySale] = useState(false);
 
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   // If a search query is passed in the URL, we keep it in state
   const searchQuery = searchParamQuery;
 
@@ -31,6 +33,7 @@ export default function Shop() {
     setSelectedWoods((prev) =>
       prev.includes(wood) ? prev.filter((w) => w !== wood) : [...prev, wood]
     );
+    setMobileFiltersOpen(false); // Close mobile drawer immediately once filter is selected!
   };
 
   // Quick select dynamic material chip
@@ -40,6 +43,7 @@ export default function Shop() {
     } else {
       setSelectedWoods([wood]);
     }
+    setMobileFiltersOpen(false); // Close mobile drawer
   };
 
   // Clear All Filters
@@ -49,6 +53,7 @@ export default function Shop() {
     setMinRating(0);
     setSortBy('best');
     setOnlySale(false);
+    setMobileFiltersOpen(false); // Close mobile drawer
     if (searchParamQuery) {
       setSearchParams({});
     }
@@ -150,8 +155,28 @@ export default function Shop() {
         {/* Filter & Main Grid Layout */}
         <div className="shop-layout">
           
+          {/* Mobile Filters Trigger Toggle Button */}
+          <button
+            type="button"
+            className="mobile-filter-trigger animate-fade-up stagger-3"
+            onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+          >
+            <Filter size={16} /> Filters & Sorting
+          </button>
+
           {/* Sidebar Filter Panel */}
-          <aside className="shop-sidebar animate-fade-up stagger-3">
+          <aside className={`shop-sidebar animate-fade-up stagger-3 ${mobileFiltersOpen ? 'shop-sidebar--open' : ''}`}>
+            <div className="mobile-sidebar-header" style={{ display: 'none', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(92, 61, 46, 0.08)', paddingBottom: '10px' }}>
+              <span style={{ fontWeight: 'bold', color: 'var(--color-wood-dark)', fontSize: 'var(--fs-medium)' }}>Filters & Sorting</span>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: 'var(--fs-medium)', fontWeight: 'bold' }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
             {/* Sort Section */}
             <div className="filter-section">
               <h3 className="filter-title">
@@ -161,7 +186,7 @@ export default function Shop() {
               <select
                 className="sort-select"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => { setSortBy(e.target.value); setMobileFiltersOpen(false); }}
               >
                 <option value="best">Best Sellers</option>
                 <option value="price-asc">Price: Low to High</option>
@@ -217,7 +242,7 @@ export default function Shop() {
                       type="radio"
                       name="rating"
                       checked={minRating === rating}
-                      onChange={() => setMinRating(rating)}
+                      onChange={() => { setMinRating(rating); setMobileFiltersOpen(false); }}
                     />
                     <span>{rating}★ & above</span>
                   </label>
@@ -227,7 +252,7 @@ export default function Shop() {
                     type="radio"
                     name="rating"
                     checked={minRating === 0}
-                    onChange={() => setMinRating(0)}
+                    onChange={() => { setMinRating(0); setMobileFiltersOpen(false); }}
                   />
                   <span>All Ratings</span>
                 </label>
@@ -240,7 +265,7 @@ export default function Shop() {
                 <input
                   type="checkbox"
                   checked={onlySale}
-                  onChange={(e) => setOnlySale(e.target.checked)}
+                  onChange={(e) => { setOnlySale(e.target.checked); setMobileFiltersOpen(false); }}
                 />
                 <span>Special Offers %</span>
               </label>
@@ -249,6 +274,16 @@ export default function Shop() {
             {/* Clear All CTA */}
             <button className="btn-clear-filters" onClick={handleClearFilters}>
               <RotateCcw size={14} /> Clear Filters
+            </button>
+
+            {/* Mobile Apply Button */}
+            <button
+              type="button"
+              className="btn-apply-filters"
+              onClick={() => setMobileFiltersOpen(false)}
+              style={{ display: 'none' }}
+            >
+              Apply Filter Settings
             </button>
           </aside>
 

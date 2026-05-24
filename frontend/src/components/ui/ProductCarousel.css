@@ -113,13 +113,47 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
+  .carousel {
+    padding: 0 var(--space-md) !important;
+  }
+
   .carousel__header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .carousel__title {
+    font-size: var(--fs-h3) !important;
+  }
+
+  .carousel__subtitle {
+    font-size: 11px !important;
   }
 
   .carousel__arrows {
     align-self: flex-end;
     margin-top: calc(-1 * var(--space-xl));
   }
+
+  .carousel__arrow {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Keep horizontal scroll but make cards compact — matching shop page sizing */
+  .carousel__track {
+    gap: 8px !important;
+  }
+
+  .carousel__track > .pcard {
+    flex: 0 0 155px !important;
+    min-width: 155px !important;
+    max-width: 155px !important;
+  }
+
+  .carousel__fade {
+    width: 30px !important;
+  }
 }
+
+

@@ -177,3 +177,20 @@
   background: rgba(92, 61, 46, 0.05);
 }
 
+/* Mobile responsive alignment overrides */
+@media (max-width: 576px) {
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-sm);
+  }
+  
+  .auth-card {
+    padding: var(--space-xl) var(--space-md) !important;
+  }
+  
+  .auth-title {
+    font-size: var(--fs-medium) !important;
+  }
+}
+
+

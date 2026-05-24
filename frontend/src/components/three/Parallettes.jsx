@@ -652,6 +652,61 @@ export default function Parallettes({
   const tiltAngle = useMemo(() => Math.asin(0.29 / 1.0), []);
   const topParallettePos = useMemo(() => [0, 0.145, -0.4785], []);
 
+  // Programmatically perturbed organic geometries for 100% realism
+  const perturbedLogGeometry = useMemo(() => {
+    const geom = new THREE.CylinderGeometry(0.23, 0.24, 1.12, 32, 10);
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      if (Math.abs(y) < 0.55) {
+        const angle = Math.atan2(z, x);
+        const noise = (Math.sin(y * 8) * 0.015) + (Math.sin(angle * 6) * 0.008);
+        pos.setX(i, x + Math.cos(angle) * noise);
+        pos.setZ(i, z + Math.sin(angle) * noise);
+      }
+    }
+    geom.computeVertexNormals();
+    return geom;
+  }, []);
+
+  const perturbedBarkLeftGeom = useMemo(() => {
+    const geom = new THREE.CylinderGeometry(0.245, 0.255, 1.14, 32, 10, true, 0, Math.PI);
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      if (Math.abs(y) < 0.56) {
+        const angle = Math.atan2(z, x);
+        const noise = (Math.sin(y * 8) * 0.015) + (Math.sin(angle * 6) * 0.008);
+        pos.setX(i, x + Math.cos(angle) * noise);
+        pos.setZ(i, z + Math.sin(angle) * noise);
+      }
+    }
+    geom.computeVertexNormals();
+    return geom;
+  }, []);
+
+  const perturbedBarkRightGeom = useMemo(() => {
+    const geom = new THREE.CylinderGeometry(0.245, 0.255, 1.14, 32, 10, true, Math.PI, Math.PI);
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      if (Math.abs(y) < 0.56) {
+        const angle = Math.atan2(z, x);
+        const noise = (Math.sin(y * 8) * 0.015) + (Math.sin(angle * 6) * 0.008);
+        pos.setX(i, x + Math.cos(angle) * noise);
+        pos.setZ(i, z + Math.sin(angle) * noise);
+      }
+    }
+    geom.computeVertexNormals();
+    return geom;
+  }, []);
+
   // ══════════════════════════════════════════════════
   // Detailed Cinematic Timeline Journey calculations (0.0 -> 1.0)
   // ══════════════════════════════════════════════════
@@ -672,10 +727,16 @@ export default function Parallettes({
     const logCoreScale = p <= 0.20 ? 1.0 : p >= 0.32 ? 0.0 : 1.0 - (p - 0.20) / 0.12;
     const logPulse = p >= 0.18 && p <= 0.32 ? Math.sin((p - 0.18) / 0.14 * Math.PI) * 4.0 : 0;
 
-    // Phase 3: Sanding/Materialization Ring Sweep (0.32 -> 0.46)
-    const sandingActive = p >= 0.32 && p < 0.46;
-    const sandingProgress = sandingActive ? (p - 0.32) / 0.14 : 0;
-    const sandingRingZ = 1.0 - sandingProgress * 2.2; // sweeps from front to back
+    // Phase 3: Sanding/Materialization Ring Sweep (0.32 -> 0.66)
+    // Ring sweeps from Z=1.0 down to Z=-0.24 (center of assembly) and stops there, then fades out gently!
+    const sandingActive = p >= 0.32 && p < 0.66;
+    
+    // Sweeps from 1.0 to -0.24 from p=0.32 to 0.48
+    const tSweep = Math.min(Math.max((p - 0.32) / 0.16, 0), 1.0);
+    const sandingRingZ = 1.0 - tSweep * 1.24; // Stops exactly at -0.24!
+    
+    // Fades out from p=0.48 to 0.66
+    const sandingOpacity = p <= 0.48 ? 1.0 : Math.max(0, 1.0 - (p - 0.48) / 0.18);
 
     // Phase 4: Staggered Assembly (0.44 -> 0.64)
     const pAssemblyActive = p >= 0.24;
@@ -706,6 +767,7 @@ export default function Parallettes({
       logPulse,
       sandingActive,
       sandingRingZ,
+      sandingOpacity,
       pAssemblyActive,
       paintProgress,
       isEngraving,
@@ -727,8 +789,7 @@ export default function Parallettes({
           {/* Inner Glowing Sapwood Core with elegant Nano-Grid structure */}
           {stages.logCoreScale > 0.01 && (
             <group scale={stages.logCoreScale}>
-              <mesh>
-                <cylinderGeometry args={[0.20, 0.20, 1.3, 32]} />
+              <mesh geometry={perturbedLogGeometry}>
                 <meshStandardMaterial
                   map={woodTextureRawLinear}
                   roughness={0.9}
@@ -737,8 +798,7 @@ export default function Parallettes({
                 />
               </mesh>
               {/* Elegant golden holographic grid wrapped inside log */}
-              <mesh>
-                <cylinderGeometry args={[0.201, 0.201, 1.31, 16, 4]} />
+              <mesh geometry={perturbedLogGeometry}>
                 <meshBasicMaterial
                   color="#FFB84D"
                   wireframe
@@ -752,8 +812,7 @@ export default function Parallettes({
 
           {/* Left Peeling Bark shell */}
           <group position={[-stages.barkOffset * 0.5, -stages.barkOffset * 0.6, 0]} rotation={[0, 0, stages.barkLeftRot]}>
-            <mesh castShadow>
-              <cylinderGeometry args={[0.22, 0.22, 1.34, 16, 2, true, 0, Math.PI]} />
+            <mesh geometry={perturbedBarkLeftGeom} castShadow>
               <meshStandardMaterial
                 map={barkTexture}
                 roughness={0.95}
@@ -764,16 +823,15 @@ export default function Parallettes({
               />
             </mesh>
             {/* Top sapwood cut half-ring */}
-            <mesh position={[0, 0.67, 0]} rotation={[Math.PI / 2, 0, 0]}>
-              <circleGeometry args={[0.22, 16, 0, Math.PI]} />
+            <mesh position={[0, 0.56, 0]} rotation={[Math.PI / 2, 0, 0]}>
+              <circleGeometry args={[0.25, 16, 0, Math.PI]} />
               <meshStandardMaterial map={woodTextureRawRings} roughness={0.9} transparent opacity={1.0 - stages.barkOffset * 0.5} />
             </mesh>
           </group>
 
           {/* Right Peeling Bark shell */}
           <group position={[stages.barkOffset * 0.5, -stages.barkOffset * 0.6, 0]} rotation={[0, 0, stages.barkRightRot]}>
-            <mesh castShadow>
-              <cylinderGeometry args={[0.22, 0.22, 1.34, 16, 2, true, Math.PI, Math.PI]} />
+            <mesh geometry={perturbedBarkRightGeom} castShadow>
               <meshStandardMaterial
                 map={barkTexture}
                 roughness={0.95}
@@ -783,8 +841,8 @@ export default function Parallettes({
                 opacity={1.0 - stages.barkOffset * 0.5}
               />
             </mesh>
-            <mesh position={[0, 0.67, 0]} rotation={[Math.PI / 2, 0, 0]}>
-              <circleGeometry args={[0.22, 16, Math.PI, Math.PI]} />
+            <mesh position={[0, 0.56, 0]} rotation={[Math.PI / 2, 0, 0]}>
+              <circleGeometry args={[0.25, 16, Math.PI, Math.PI]} />
               <meshStandardMaterial map={woodTextureRawRings} roughness={0.9} transparent opacity={1.0 - stages.barkOffset * 0.5} />
             </mesh>
           </group>
@@ -797,11 +855,11 @@ export default function Parallettes({
           {/* Double outer scanner rings */}
           <mesh position={[0, 0.24, stages.sandingRingZ]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.8, 0.015, 8, 48]} />
-            <meshBasicMaterial color="#FFB84D" toneMapped={false} />
+            <meshBasicMaterial color="#FFB84D" transparent opacity={stages.sandingOpacity} toneMapped={false} />
           </mesh>
           <mesh position={[0, 0.24, stages.sandingRingZ - 0.05]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.78, 0.005, 8, 48]} />
-            <meshBasicMaterial color="#FF9933" toneMapped={false} />
+            <meshBasicMaterial color="#FF9933" transparent opacity={stages.sandingOpacity} toneMapped={false} />
           </mesh>
         </group>
       )}

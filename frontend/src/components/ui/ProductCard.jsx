@@ -11,6 +11,7 @@ import './ProductCard.css';
 export default function ProductCard({ product }) {
   const [isHovered, setIsHovered] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(0);
+  const [tapped, setTapped] = useState(false);
   const videoRef = useRef(null);
   const navigate = useNavigate();
 
@@ -31,12 +32,25 @@ export default function ProductCard({ product }) {
 
   const handleMouseLeave = () => {
     setIsHovered(false);
+    setTapped(false);
     if (videoRef.current) {
       videoRef.current.pause();
     }
   };
 
-  const handleCardClick = () => {
+  const handleCardClick = (e) => {
+    // On touch devices with video: first tap plays video, second navigates
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isTouchDevice && product.video && !tapped) {
+      e.preventDefault();
+      setTapped(true);
+      setIsHovered(true);
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch(() => {});
+      }
+      return;
+    }
     navigate(`/product/${product.id}`);
   };
 

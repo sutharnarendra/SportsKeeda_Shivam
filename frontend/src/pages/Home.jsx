@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Star, ArrowRight } from 'lucide-react';
 import FeatureCards from '../components/ui/FeatureCards';
 import ProductCarousel from '../components/ui/ProductCarousel';
 import { useSceneStore } from '../store/sceneStore';
+import { useOrderStore } from '../store/orderStore';
 import './Home.css';
 
 /* ─── Placeholder Data (will come from admin panel API) ─── */
@@ -193,33 +194,75 @@ const SIMILAR_PRODUCTS = [
   },
 ];
 
-const REVIEWS = [
-  {
-    stars: 5,
-    text: '"These parallettes are a game-changer. The wood quality is incredible — you can feel the craftsmanship in every detail. Worth every rupee."',
-    name: 'Arjun M.',
-    date: 'March 2026',
-    initials: 'AM',
-  },
-  {
-    stars: 5,
-    text: '"Got the laser engraving with my gym logo. Looks absolutely premium. My clients love training on these. Solid grip, no wobble."',
-    name: 'Priya S.',
-    date: 'April 2026',
-    initials: 'PS',
-  },
-  {
-    stars: 4,
-    text: '"Beautiful handcrafted product. The sheesham wood finish is stunning. Shipping was fast and packaging was excellent. Highly recommend!"',
-    name: 'Rahul K.',
-    date: 'May 2026',
-    initials: 'RK',
-  },
-];
+/**
+ * HomeReviewCard — Renders an individual review in the shop page styled grid with expandable text.
+ */
+function HomeReviewCard({ review }) {
+  const [expanded, setExpanded] = useState(false);
+  const TEXT_LIMIT = 70; // Characters limit before showing "Show more"
+  
+  // Clean quotes from text if present
+  const rawText = review.text.replace(/^["&ldquo;]+|["&rdquo;]+$/g, '');
+  const isLong = rawText.length > TEXT_LIMIT;
+
+  const renderStars = (count) => {
+    return '★'.repeat(count) + '☆'.repeat(5 - count);
+  };
+
+  // Get initials for avatar (e.g. Vikram Malhotra -> VM)
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  return (
+    <div className="review-card animate-fade-up">
+      <div className="review-stars">{renderStars(review.rating || review.stars || 5)}</div>
+      
+      <p className={`review-text ${expanded ? 'review-text--expanded' : ''}`}>
+        &ldquo;{rawText}&rdquo;
+      </p>
+
+      {isLong && (
+        <button
+          type="button"
+          className="review-show-more-btn"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+
+      <div className="review-author">
+        <div className="review-avatar">
+          {review.initials || getInitials(review.author || review.name)}
+        </div>
+        <div>
+          <div className="review-author-name">{review.author || review.name}</div>
+          <div className="review-author-date">{review.date}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [showFeatureCards, setShowFeatureCards] = useState(false);
   const isAssembled = useSceneStore((state) => state.isAssembled);
+  const allReviews = useOrderStore((state) => state.reviews) || [];
+
+  const topReviews = useMemo(() => {
+    return [...allReviews]
+      .sort((a, b) => {
+        const rA = a.rating || a.stars || 5;
+        const rB = b.rating || b.stars || 5;
+        if (rB !== rA) return rB - rA;
+        return (b.id || 0) - (a.id || 0); // Newest reviews first
+      })
+      .slice(0, 6);
+  }, [allReviews]);
 
   useEffect(() => {
     if (isAssembled) {
@@ -227,10 +270,6 @@ export default function Home() {
       return () => clearTimeout(timeout);
     }
   }, [isAssembled]);
-
-  const renderStars = (count) => {
-    return '★'.repeat(count) + '☆'.repeat(5 - count);
-  };
 
   return (
     <main>
@@ -323,18 +362,8 @@ export default function Home() {
           </p>
         </div>
         <div className="reviews-grid">
-          {REVIEWS.map((review, index) => (
-            <div key={index} className="review-card" id={`review-card-${index}`}>
-              <div className="review-stars">{renderStars(review.stars)}</div>
-              <p className="review-text">{review.text}</p>
-              <div className="review-author">
-                <div className="review-avatar">{review.initials}</div>
-                <div>
-                  <div className="review-author-name">{review.name}</div>
-                  <div className="review-author-date">{review.date}</div>
-                </div>
-              </div>
-            </div>
+          {topReviews.map((review, index) => (
+            <HomeReviewCard key={review.id || index} review={review} />
           ))}
         </div>
       </section>

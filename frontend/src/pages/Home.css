@@ -325,6 +325,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
   transition: all var(--transition-base);
+  display: flex;
+  flex-direction: column;
 }
 
 .review-card:hover {
@@ -343,14 +345,42 @@
   font-size: var(--fs-small);
   color: var(--color-text-secondary);
   line-height: 1.7;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
   font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.review-text--expanded {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  overflow: visible !important;
+}
+
+.review-show-more-btn {
+  background: none;
+  border: none;
+  color: var(--color-accent-gold);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: var(--space-md);
+  text-align: left;
+  transition: color var(--transition-base);
+}
+
+.review-show-more-btn:hover {
+  color: var(--color-wood-dark);
 }
 
 .review-author {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  margin-top: auto;
 }
 
 .review-avatar {
@@ -446,5 +476,48 @@
   .welcome-stats {
     flex-direction: column;
     gap: var(--space-xl);
+  }
+
+  /* 2-column Reviews Grid matching Shop Page Products Grid */
+  .reviews-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    padding: 0 var(--space-md) !important;
+  }
+
+  .review-card {
+    padding: 12px 10px !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .review-stars {
+    font-size: 10px !important;
+    margin-bottom: 6px !important;
+    letter-spacing: 1px !important;
+  }
+
+  .review-text {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .review-show-more-btn {
+    font-size: 9px !important;
+    margin-bottom: var(--space-xs) !important;
+  }
+
+  .review-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 10px !important;
+  }
+
+  .review-author-name {
+    font-size: 10px !important;
+  }
+
+  .review-author-date {
+    font-size: 8px !important;
   }
 }

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, ContactShadows, OrbitControls } from '@react-three/drei';
+import { useLocation } from 'react-router-dom';
 import Parallettes from './Parallettes';
 import { useSceneStore } from '../../store/sceneStore';
 
@@ -14,6 +15,17 @@ export default function Scene({ onAssemblyComplete }) {
   const animFrameRef = useRef(null);
   const startTimeRef = useRef(null);
   const setAssembled = useSceneStore((state) => state.setAssembled);
+  const location = useLocation();
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const ASSEMBLY_DURATION = 9500; // 9.5 seconds majestic creation journey
 
@@ -33,9 +45,37 @@ export default function Scene({ onAssemblyComplete }) {
     }
   }, [onAssemblyComplete, setAssembled]);
 
+  // Handle logo (restart) and home (skip) clicks
+  useEffect(() => {
+    if (location.state?.restartAnimation) {
+      // Clear location state first so it doesn't loop
+      window.history.replaceState({}, document.title);
+
+      // Reset animation states
+      setIsAssembled(false);
+      setAssembled(false);
+      setAssemblyProgress(0);
+      startTimeRef.current = null;
+
+      // Re-trigger assembly animation
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = requestAnimationFrame(animate);
+    } else if (location.state?.skipAnimation) {
+      // Clear location state
+      window.history.replaceState({}, document.title);
+
+      // Instantly finish animation
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      setIsAssembled(true);
+      setAssembled(true);
+      setAssemblyProgress(1);
+    }
+  }, [location.state, animate, setAssembled]);
 
   useEffect(() => {
-    // Start assembly animation after a brief delay
+    // Only run initial auto-assembly if not skipped or restarted by location state
+    if (location.state?.skipAnimation || location.state?.restartAnimation) return;
+
     const timeout = setTimeout(() => {
       animFrameRef.current = requestAnimationFrame(animate);
     }, 400);
@@ -44,13 +84,13 @@ export default function Scene({ onAssemblyComplete }) {
       clearTimeout(timeout);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [animate]);
+  }, [animate, location.state]);
 
   return (
     <Canvas
       camera={{
-        position: [3, 2.5, 4],
-        fov: 40,
+        position: isMobile ? [4, 3.2, 5.5] : [3, 2.5, 4],
+        fov: isMobile ? 52 : 40,
         near: 0.1,
         far: 100,
       }}

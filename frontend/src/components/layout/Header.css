@@ -244,4 +244,88 @@
   border-color: var(--color-accent-gold);
 }
 
+/* Glassmorphic Mobile Drawer */
+.header-mobile-drawer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 10px 25px rgba(92, 61, 46, 0.08);
+  padding: var(--space-xl) var(--space-2xl);
+  z-index: 999;
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mobile-nav a {
+  font-family: var(--font-heading);
+  font-size: var(--fs-medium);
+  font-weight: var(--fw-bold);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(92, 61, 46, 0.05);
+  transition: all var(--transition-base);
+  display: block;
+}
+
+.mobile-nav a:last-child {
+  border-bottom: none;
+}
+
+.mobile-nav a:hover,
+.mobile-nav a.active {
+  color: var(--color-accent-gold);
+  padding-left: var(--space-xs);
+}
+
+/* Adjustments for search layout on smaller screens */
+@media (max-width: 768px) {
+  .header-inner {
+    padding: 0 var(--space-md);
+  }
+  
+  .logo-text {
+    font-size: 1.1rem;
+  }
+  
+  .header-search {
+    position: absolute;
+    top: 80px; /* Sits perfectly below the 80px high fixed navigation bar */
+    left: 0;
+    width: 100% !important;
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 10px 25px rgba(92, 61, 46, 0.08);
+    padding: 0.8rem var(--space-xl);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: all var(--transition-base);
+  }
+  
+  .header-search.open {
+    width: 100% !important;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+
+
 
