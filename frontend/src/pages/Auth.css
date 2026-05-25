@@ -1,6 +1,8 @@
 /* ─── Authentication Pages Style System ─── */
 
 .auth-page {
+  position: relative;
+  z-index: 1;
   padding: 140px 0 var(--space-4xl);
   min-height: 100vh;
   background: transparent;
