@@ -12,6 +12,7 @@ import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import OrderHistory from './pages/OrderHistory';
+import { Analytics } from '@vercel/analytics/react';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -52,6 +53,7 @@ function App() {
             <Route path="/order-history" element={<OrderHistory />} />
           </Routes>
           <Footer />
+          <Analytics />
         </>
       )}
     </BrowserRouter>
