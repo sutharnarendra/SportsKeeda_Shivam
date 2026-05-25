@@ -14,8 +14,8 @@
   pointer-events: auto;
   padding: 1.3rem 1.8rem; /* Grander padding for extreme premium feel */
   background: var(--glass-bg);
-  backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(16px) !important;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
@@ -173,8 +173,8 @@
     animation: none !important;
     transform: none !important;
     background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
+    backdrop-filter: blur(12px) !important;
   }
 
   .feature-card:hover {

@@ -21,10 +21,10 @@
   --color-bg-hero: linear-gradient(145deg, #FDF8F3 0%, #F5E6D3 50%, #EDD9C0 100%);
 
   /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-hover: rgba(255, 255, 255, 0.82);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --glass-border-hover: rgba(255, 255, 255, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.38);
+  --glass-bg-hover: rgba(255, 255, 255, 0.48);
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-border-hover: rgba(255, 255, 255, 0.6);
   --glass-shadow: 0 8px 32px rgba(92, 61, 46, 0.08);
   --glass-shadow-hover: 0 12px 40px rgba(92, 61, 46, 0.14);
   --glass-blur: blur(20px);
@@ -188,11 +188,10 @@ ul, ol {
   padding: 0 var(--container-padding);
 }
 
-/* ─── Glass Card Utility ─── */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  backdrop-filter: var(--glass-blur) !important;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
@@ -206,9 +205,9 @@ ul, ol {
 }
 
 .glass-heavy {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(32px) !important;
-  -webkit-backdrop-filter: blur(32px) !important;
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: var(--glass-blur-heavy) !important;
+  backdrop-filter: var(--glass-blur-heavy) !important;
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
