@@ -108,9 +108,9 @@
 /* ─── Welcome / Brand Intro Section ─── */
 .welcome-section {
   padding: var(--space-4xl) var(--container-padding);
-  background: rgba(253, 248, 243, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(253, 248, 243, 0.82);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.4);
   text-align: center;
 }
@@ -177,18 +177,18 @@
 /* ─── Featured Products Section ─── */
 .featured-section {
   padding: var(--space-4xl) 0;
-  background: rgba(248, 240, 230, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(248, 240, 230, 0.8);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 /* ─── Similar Products Section ─── */
 .similar-section {
   padding: var(--space-4xl) 0;
-  background: rgba(253, 248, 243, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(253, 248, 243, 0.78);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -301,9 +301,9 @@
 /* ─── Reviews Section ─── */
 .reviews-section {
   padding: var(--space-4xl) 0;
-  background: rgba(253, 248, 243, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(253, 248, 243, 0.8);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.35);
 }
 
@@ -411,9 +411,9 @@
 /* ─── Discount Banner ─── */
 .discount-banner {
   padding: var(--space-3xl) 0;
-  background: linear-gradient(135deg, rgba(92, 61, 46, 0.88), rgba(61, 37, 24, 0.88));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(135deg, rgba(92, 61, 46, 0.94), rgba(61, 37, 24, 0.94));
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   text-align: center;
   position: relative;
   overflow: hidden;

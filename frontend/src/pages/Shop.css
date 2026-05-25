@@ -13,9 +13,9 @@
   max-width: var(--container-max);
   margin: 0 auto;
   padding: var(--space-2xl);
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--glass-shadow);
@@ -37,7 +37,7 @@
 
 .shop-subtitle {
   font-size: var(--fs-medium);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 /* Material Quick Filters */

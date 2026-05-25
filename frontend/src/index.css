@@ -21,14 +21,14 @@
   --color-bg-hero: linear-gradient(145deg, #FDF8F3 0%, #F5E6D3 50%, #EDD9C0 100%);
 
   /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.45);
-  --glass-bg-hover: rgba(255, 255, 255, 0.6);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-hover: rgba(255, 255, 255, 0.82);
   --glass-border: rgba(255, 255, 255, 0.55);
   --glass-border-hover: rgba(255, 255, 255, 0.7);
   --glass-shadow: 0 8px 32px rgba(92, 61, 46, 0.08);
   --glass-shadow-hover: 0 12px 40px rgba(92, 61, 46, 0.14);
-  --glass-blur: blur(16px);
-  --glass-blur-heavy: blur(24px);
+  --glass-blur: blur(20px);
+  --glass-blur-heavy: blur(32px);
 
   /* Text Colors */
   --color-text-primary: #2C1810;
@@ -206,9 +206,9 @@ ul, ol {
 }
 
 .glass-heavy {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
