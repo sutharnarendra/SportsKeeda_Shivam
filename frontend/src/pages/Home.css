@@ -109,8 +109,8 @@
 .welcome-section {
   padding: var(--space-4xl) var(--container-padding);
   background: rgba(253, 248, 243, 0.82);
-  backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.4);
   text-align: center;
 }
@@ -178,8 +178,8 @@
 .featured-section {
   padding: var(--space-4xl) 0;
   background: rgba(248, 240, 230, 0.8);
-  backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.35);
 }
 
@@ -187,8 +187,8 @@
 .similar-section {
   padding: var(--space-4xl) 0;
   background: rgba(253, 248, 243, 0.78);
-  backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -203,8 +203,8 @@
 
 .product-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(16px) !important;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -302,8 +302,8 @@
 .reviews-section {
   padding: var(--space-4xl) 0;
   background: rgba(253, 248, 243, 0.8);
-  backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
   border-top: 1px solid rgba(255, 255, 255, 0.35);
 }
 
@@ -412,8 +412,8 @@
 .discount-banner {
   padding: var(--space-3xl) 0;
   background: linear-gradient(135deg, rgba(92, 61, 46, 0.94), rgba(61, 37, 24, 0.94));
-  backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
   text-align: center;
   position: relative;
   overflow: hidden;
