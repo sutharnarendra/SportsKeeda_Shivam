@@ -1,7 +1,7 @@
 # Yatra X — Premium 3D E-Commerce Website
 ## Master Implementation Plan & Architecture Reference
 
-> **Last Updated:** 2026-05-23  
+> **Last Updated:** 2026-05-29  
 > **Status:** In Progress  
 > **Tech Stack:** Spring Boot 3.x (Backend) + React 18 + Vite (Frontend)
 
@@ -22,39 +22,39 @@
 
 | #  | Feature | Priority | Status |
 |----|---------|----------|--------|
-| 1  | Navigation Welcome to Website (landing hero) | P0 | `[ ]` |
+| 1  | Navigation Welcome to Website (landing hero) | P0 | `[x]` |
 | 2  | Faster loading time (performance optimization) | P0 | `[ ]` |
-| 3  | Simple search bar at top | P0 | `[ ]` |
-| 4  | Easy to use — user-friendly navigation | P0 | `[ ]` |
-| 5  | Mobile friendly (responsive design) | P0 | `[ ]` |
+| 3  | Simple search bar at top | P0 | `[x]` |
+| 4  | Easy to use — user-friendly navigation | P0 | `[x]` |
+| 5  | Mobile friendly (responsive design) | P0 | `[x]` |
 | 6  | High quality images & videos | P0 | `[ ]` |
-| 7  | User reviews & ratings | P1 | `[ ]` |
-| 8  | Special discount offers (%) | P1 | `[ ]` |
+| 7  | User reviews & ratings | P1 | `[x]` |
+| 8  | Special discount offers (%) | P1 | `[x]` |
 | 9  | Shopping lists / wishlists | P1 | `[ ]` |
 | 10 | Find in store feature | P2 | `[ ]` |
-| 11 | Similar item suggestion (custom recommendations) | P1 | `[ ]` |
+| 11 | Similar item suggestion (custom recommendations) | P1 | `[x]` |
 | 12 | FAQs section | P1 | `[ ]` |
-| 13 | Social proof — social media integration (Instagram DM, WhatsApp, Twitter/X, Facebook, YouTube) | P1 | `[ ]` |
+| 13 | Social proof — social media integration (Instagram DM, WhatsApp, Twitter/X, Facebook, YouTube) | P1 | `[x]` |
 | 14 | Security features — 2FA in payment transactions | P2 | `[ ]` |
-| 15 | Easy payment method & easy add-to-cart | P0 | `[ ]` |
-| 16 | Shipping details & tax calculation after order | P1 | `[ ]` |
+| 15 | Easy payment method & easy add-to-cart | P0 | `[x]` |
+| 16 | Shipping details & tax calculation after order | P1 | `[x]` |
 | 17 | Customer service / contact page (email, phone, chat) | P1 | `[ ]` |
-| 18 | No return policy (clearly stated) | P0 | `[ ]` |
+| 18 | No return policy (clearly stated) | P0 | `[x]` |
 
 ### 2B. Features from Verbal Requirements
 
 | #  | Feature | Priority | Status |
 |----|---------|----------|--------|
-| 19 | 3D product assembly animation on homepage | P0 | `[ ]` |
-| 20 | 3D product rotation (premium showcase) | P0 | `[ ]` |
-| 21 | 3D model as full-screen background | P0 | `[ ]` |
-| 22 | Central rounded-corner rectangle for product (laptop view) | P0 | `[ ]` |
-| 23 | 4–6 glassmorphic feature cards around product | P0 | `[ ]` |
-| 24 | Feature cards: size, customization, laser engraving, delivery, premium materials, etc. | P0 | `[ ]` |
-| 25 | Full glassmorphism design — light theme | P0 | `[ ]` |
-| 26 | Premium wooden aesthetic throughout | P0 | `[ ]` |
-| 27 | Logo at top-left with proper spacing | P0 | `[ ]` |
-| 28 | Search + Login + Cart in top header aligned with logo | P0 | `[ ]` |
+| 19 | 3D product assembly animation on homepage | P0 | `[x]` |
+| 20 | 3D product rotation (premium showcase) | P0 | `[x]` |
+| 21 | 3D model as full-screen background | P0 | `[x]` |
+| 22 | Central rounded-corner rectangle for product (laptop view) | P0 | `[x]` |
+| 23 | 4–6 glassmorphic feature cards around product | P0 | `[x]` |
+| 24 | Feature cards: size, customization, laser engraving, delivery, premium materials, etc. | P0 | `[x]` |
+| 25 | Full glassmorphism design — light theme | P0 | `[x]` |
+| 26 | Premium wooden aesthetic throughout | P0 | `[x]` |
+| 27 | Logo at top-left with proper spacing | P0 | `[x]` |
+| 28 | Search + Login + Cart in top header aligned with logo | P0 | `[x]` |
 
 ---
 
@@ -373,33 +373,33 @@ T=4.0s   Feature cards fade in (staggered 0.15s each)
 
 ## 10. Development Phases & Progress
 
-### Phase 1 — Project Setup ⬅ CURRENT
-- `[ ]` Initialize React + Vite frontend
-- `[ ]` Install all frontend dependencies
-- `[ ]` Initialize Spring Boot backend
+### Phase 1 — Project Setup
+- `[x]` Initialize React + Vite frontend
+- `[x]` Install all frontend dependencies
+- `[x]` Initialize Spring Boot backend
 - `[ ]` Configure CORS between frontend (5173) and backend (8080)
-- `[ ]` Setup design system CSS
+- `[x]` Setup design system CSS
 
 ### Phase 2 — Homepage & 3D (First Visible Output)
-- `[ ]` Loading/splash screen with brand animation
-- `[ ]` Header component (logo, search, login, cart)
-- `[ ]` Three.js scene setup with lighting
-- `[ ]` Build parallette 3D model (procedural geometry)
-- `[ ]` Assembly animation with GSAP
-- `[ ]` Continuous rotation post-assembly
-- `[ ]` Glassmorphic feature cards around 3D
-- `[ ]` Welcome section + brand intro
-- `[ ]` Footer component
-- `[ ]` Responsive adjustments
+- `[x]` Loading/splash screen with brand animation
+- `[x]` Header component (logo, search, login, cart)
+- `[x]` Three.js scene setup with lighting
+- `[x]` Build parallette 3D model (procedural geometry)
+- `[x]` Assembly animation with GSAP
+- `[x]` Continuous rotation post-assembly
+- `[x]` Glassmorphic feature cards around 3D
+- `[x]` Welcome section + brand intro
+- `[x]` Footer component
+- `[x]` Responsive adjustments
 
 ### Phase 3 — Core E-Commerce Pages
-- `[ ]` Shop/catalog page with product grid
-- `[ ]` Product detail page with 3D viewer
-- `[ ]` Cart page with state management
-- `[ ]` Checkout page with payment flow
-- `[ ]` Login/register pages
+- `[x]` Shop/catalog page with product grid
+- `[x]` Product detail page with 3D viewer
+- `[x]` Cart page with state management
+- `[x]` Checkout page with payment flow
+- `[x]` Login/register pages
 
-### Phase 4 — Backend API
+### Phase 4 — Backend API ⬅ CURRENT
 - `[ ]` Database schema + JPA entities
 - `[ ]` Auth API (register, login, JWT)
 - `[ ]` Product API (CRUD, search, filter)
@@ -410,17 +410,17 @@ T=4.0s   Feature cards fade in (staggered 0.15s each)
 
 ### Phase 5 — Additional Features
 - `[ ]` Search with live suggestions
-- `[ ]` Reviews & ratings
+- `[x]` Reviews & ratings
 - `[ ]` Wishlist
 - `[ ]` FAQ, Contact, About, Policy pages
 - `[ ]` Store locator
-- `[ ]` Social media integration
-- `[ ]` Discount/promo system
+- `[x]` Social media integration
+- `[x]` Discount/promo system
 
 ### Phase 6 — Polish & Deployment
 - `[ ]` Performance optimization (Lighthouse >85)
-- `[ ]` SEO meta tags
-- `[ ]` Micro-animations & hover effects
+- `[x]` Setup design system CSS (SEO meta tags)
+- `[x]` Micro-animations & hover effects
 - `[ ]` Mobile testing
 - `[ ]` 2FA implementation
 - `[ ]` Deployment (Vercel + Railway)
