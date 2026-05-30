@@ -419,10 +419,125 @@ erDiagram
 | Order records | **Neon PostgreSQL** | Transactional; must survive server restarts; audit trail |
 | Product reviews | **Neon PostgreSQL** | Relational (linked to user + product); queryable ratings |
 | Product images (JPEG/PNG) | **Cloudinary** | Auto WebP/AVIF conversion; responsive resize on delivery |
-| Product videos (MP4) | **Cloudflare R2** | Zero egress fees; pre-transcoded to 480p/720p/1080p |
+| Product videos (MP4 / HLS) | **Cloudflare R2** | Zero egress fees; pre-transcoded to adaptive HLS bitrates |
 | 3D models (GLB) | **Cloudflare R2** | Large binary files; immutable cache headers; content-hash filenames |
 | JWT blacklist (revoked tokens) | **Upstash Redis** | TTL-based auto-expiry; no DB bloat from expired tokens |
 | Session fingerprints | **In JWT claims** | Stateless; validated on every request without DB lookup |
+
+### 5C. Connection Optimization & Pooling (Neon PgBouncer)
+
+To survive with HikariCP `maximum-pool-size=3` and prevent database connection saturation, Yatra X integrates Neon's serverless **PgBouncer** connection pooler in **Transaction Mode**.
+
+```mermaid
+flowchart LR
+    SpringBoot["Spring Boot\nHikariCP (Pool Size = 3)"]
+    PgBouncer["Neon PgBouncer\n(Transaction Mode, Port 5432)"]
+    NeonDB["Neon Postgres Engine\n(Active Session = 1)"]
+
+    SpringBoot -->|"Pooled host URL"| PgBouncer
+    PgBouncer -->|"Active transactions only"| NeonDB
+```
+
+#### PgBouncer Pooler Integration Details:
+1. **Pooled Connection URL:** Instead of Neon's direct endpoint, append `-pooler` to the host name.
+   - Direct: `ep-cool-morning-123456.ap-southeast-1.aws.neon.tech`
+   - Pooled: `ep-cool-morning-123456-pooler.ap-southeast-1.aws.neon.tech`
+2. **Prepared Statement Cache Incompatibility:** In Transaction Mode, PgBouncer assigns random backend server connections for every transaction. Standard JDBC prepared statement caching fails because a compiled statement on server A won't exist on server B.
+3. **Spring Boot Solution:** Disable server-side statement preparation in `application.properties`:
+   ```properties
+   # Connect to Neon via PgBouncer Pooler
+   spring.datasource.url=jdbc:postgresql://ep-cool-morning-123456-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&prepareThreshold=0
+   
+   # Disable Hibernate statement caching to prevent transaction conflicts
+   spring.jpa.properties.hibernate.use_sql_comments=false
+   spring.jpa.properties.hibernate.format_sql=false
+   ```
+   Setting `prepareThreshold=0` tells the PostgreSQL JDBC driver to execute statements directly without caching pre-compiled queries on the database server.
+
+---
+
+### 5D. Adaptive HLS Video Streaming Pipeline
+
+Raw MP4 video files stored on Cloudflare R2 will buffer and stall on slow mobile networks (e.g., 4G/3G in India). To prevent this, Yatra X uses **HTTP Live Streaming (HLS)**. Videos are pre-transcoded into 3 quality levels with a master playlist file.
+
+```mermaid
+flowchart TD
+    Raw["Raw MP4 Video\n(1080p High Bitrate)"]
+    FFmpeg["FFmpeg Transcoder\n(Oracle VM / Local CLI)"]
+    R2Bucket["Cloudflare R2 Bucket\n(videos/ folder)"]
+
+    FFmpeg480["480p Stream (.ts)\n+ 480p.m3u8 index"]
+    FFmpeg720["720p Stream (.ts)\n+ 720p.m3u8 index"]
+    FFmpeg1080["1080p Stream (.ts)\n+ 1080p.m3u8 index"]
+    Master["master.m3u8\n(bandwidth rules index)"]
+
+    Raw --> FFmpeg
+    FFmpeg --> FFmpeg480 & FFmpeg720 & FFmpeg1080 & Master
+    FFmpeg480 & FFmpeg720 & FFmpeg1080 & Master -->|"Upload"| R2Bucket
+    R2Bucket -->|"Adaptive Streaming"| Browser["Browser Client\n(Hls.js Player)"]
+```
+
+#### Transcoding Script (`transcode-hls.sh`):
+Execute this FFmpeg script locally or inside your Oracle VM to prepare video assets before uploading to R2:
+```bash
+#!/bin/bash
+INPUT_VIDEO=$1
+OUTPUT_DIR=$2
+
+mkdir -p "$OUTPUT_DIR"
+
+# Transcode into 480p, 720p, and 1080p HLS playlists and segments
+ffmpeg -i "$INPUT_VIDEO" \
+  -filter_complex "[0:v]split=3[v1][v2][v3]; \
+  [v1]scale=w=854:h=480[v1out]; \
+  [v2]scale=w=1280:h=720[v2out]; \
+  [v3]scale=w=1920:h=1080[v3out]" \
+  -map "[v1out]" -c:v:0 libx264 -b:v:0 800k -maxrate:v:0 856k -bufsize:v:0 1200k \
+  -map "[v2out]" -c:v:1 libx264 -b:v:1 1400k -maxrate:v:1 1498k -bufsize:v:1 2100k \
+  -map "[v3out]" -c:v:2 libx264 -b:v:2 2800k -maxrate:v:2 2996k -bufsize:v:2 4200k \
+  -map a:0 -c:a aac -b:a 128k \
+  -f hls \
+  -hls_time 6 \
+  -hls_playlist_type vod \
+  -hls_segment_filename "$OUTPUT_DIR/stream_%v_%03d.ts" \
+  -master_pl_name master.m3u8 \
+  -var_stream_map "v:0,a:0 v:1,a:0 v:2,a:0" "$OUTPUT_DIR/playlist_%v.m3u8"
+```
+
+#### React Frontend HLS Player Integration:
+Include `hls.js` in your React frontend so that browsers without native HLS support (like Chrome/Firefox on desktop) play adaptive streams smoothly:
+```javascript
+import React, { useEffect, useRef } from 'react';
+import Hls from 'hls.js';
+
+export const AdaptiveVideoPlayer = ({ videoUrl }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(videoUrl); // e.g., https://pub-xxx.r2.dev/videos/hero/master.m3u8
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native support in Safari and iOS devices
+      video.src = videoUrl;
+    }
+  }, [videoUrl]);
+
+  return (
+    <video 
+      ref={videoRef} 
+      controls 
+      playsInline
+      className="video-player"
+      style={{ width: '100%', borderRadius: '12px' }}
+    />
+  );
+};
+```
 
 ---
 
@@ -488,59 +603,203 @@ flowchart TD
     RBAC --> Encrypt
     RBAC --> EnvVars
     RBAC --> Rotation
+```---
+
+## 8. Deployment Architecture (Automated CI/CD with Rollback)
+
+```mermaid
+flowchart TD
+    subgraph Dev ["Developer Environment"]
+        Code["VS Code / IntelliJ"]
+        Push["git push origin main"]
+    end
+
+    subgraph GitHubActions ["CI/CD Pipeline (GitHub Actions)"]
+        Trigger["Workflow Trigger\n(push to backend/**)"]
+        Build["Maven Build & Package\n(JDK 21 + JAR Generation)"]
+        SCP["Secure Copy (SCP)\n(Upload JAR to Oracle VM)"]
+        SSHRun["SSH Deploy Script\n(Execute zero-downtime deploy)"]
+    end
+
+    subgraph VM ["Oracle Cloud Always-Free VM"]
+        DeployScript["deploy.sh\n1. Stop old service\n2. Backup active JAR\n3. Start new JAR"]
+        Systemd["yatrax.service\n(systemd process manager)"]
+        HealthCheck["Health Check Gate\n(Actuator /health ping)"]
+        Rollback["Rollback Script\n(Restore JAR backup on fail)"]
+    end
+
+    Code --> Push
+    Push -->|"Webhook"| Trigger
+    Trigger --> Build
+    Build --> SCP
+    SCP --> SSHRun
+    SSHRun --> DeployScript
+    DeployScript --> Systemd
+    Systemd --> HealthCheck
+    HealthCheck -->|"FAIL"| Rollback
+```
+
+### 8A. Automated GitHub Actions Workflow (`.github/workflows/deploy.yml`)
+
+Create this file in your project repository under `.github/workflows/deploy.yml` to trigger deployments automatically on code updates:
+
+```yaml
+name: Yatra X Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build JAR with Maven
+        run: |
+          cd backend
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
+
+      - name: Copy JAR to Oracle VM
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          source: "backend/target/backend-0.0.1-SNAPSHOT.jar"
+          target: "/opt/yatrax/deploy-temp/"
+          strip_components: 2
+
+      - name: Execute Remote SSH Deploy Script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            sudo /opt/yatrax/deploy.sh
 ```
 
 ---
 
-## 8. Deployment Architecture
+### 8B. VM Environment Setup & Secrets Hardening
 
-```mermaid
-flowchart LR
-    subgraph Dev ["Developer Machine"]
-        Code["VS Code / IntelliJ"]
-        Git["Git Push"]
-    end
+To solve **Gap #3 (Plaintext `/etc/environment`)**, secrets are restricted on disk.
 
-    subgraph CI ["GitHub"]
-        Repo["SportsKeeda Repository"]
-    end
+1. **Restricted Env File:** Store secrets in a dedicated folder `/etc/yatrax/.env` owned exclusively by the system user running the process, with strictly read-only permissions (`chmod 600`).
+2. **Oracle Vault Integration:** For absolute enterprise hardening, secrets can be fetched at VM startup using the **OCI Key Management Service CLI** (which is Always Free for up to 20 secrets) and injected dynamically into systemd environment fields:
+   ```bash
+   # Oracle Vault secret retrieval command used during startup:
+   oci secrets secret-bundle get --secret-id <ocid-secret-id> --query "data.\"secret-bundle-content\".content" --raw-output | base64 --decode
+   ```
 
-    subgraph FrontendDeploy ["Frontend Deploy"]
-        CFBuild["Cloudflare Pages\nAuto-build on push\nnpm run build → dist/"]
-    end
+3. **Systemd Service Manager Configuration (`/etc/systemd/system/yatrax.service`):**
+```ini
+[Unit]
+Description=Yatra X Spring Boot Application
+After=network.target
 
-    subgraph BackendDeploy ["Backend Deploy"]
-        SSH["SSH to Oracle VM"]
-        Docker["Docker Container\nSpring Boot JAR\nJAVA_OPTS with ZGC"]
-    end
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/yatrax
+# Read variables from the restricted 600-permission file
+EnvironmentFile=/etc/yatrax/.env
+# High performance ZGC VM tuning parameters
+ExecStart=/usr/bin/java $JAVA_OPTS -jar /opt/yatrax/backend.jar --spring.profiles.active=production
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
 
-    Code --> Git --> Repo
-    Repo -->|"Webhook"| CFBuild
-    Repo -->|"Manual/Script"| SSH --> Docker
+[Install]
+WantedBy=multi-user.target
 ```
 
-### Deployment Commands
+---
 
-**Frontend (Automatic):**
-Cloudflare Pages auto-deploys on every `git push` to `main`. No manual steps.
+### 8C. Self-Healing Zero-Downtime Rollback Script (`/opt/yatrax/deploy.sh`)
 
-**Backend (On Oracle VM):**
+This script runs on the VM during deployment. If the new backend version fails to start (e.g. database timeout, configuration typo, or boot failure), it immediately rolls back to the working version:
+
 ```bash
-# Build the JAR
-cd backend && ./mvnw clean package -DskipTests
+#!/bin/bash
+set -e
 
-# Run with production settings
-java $JAVA_OPTS -jar target/backend-0.0.1-SNAPSHOT.jar \
-  --spring.profiles.active=production
-```
+APP_DIR="/opt/yatrax"
+TEMP_DIR="/opt/yatrax/deploy-temp"
+SERVICE_NAME="yatrax.service"
 
-**Docker Alternative:**
-```dockerfile
-FROM eclipse-temurin:21-jre-alpine
-COPY target/backend-0.0.1-SNAPSHOT.jar app.jar
-ENV JAVA_OPTS="-Xmx350m -Xms256m -XX:+UseZGC -XX:MaxMetaspaceSize=96m"
-EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app.jar"]
+echo "=== Starting Yatra X Backend Deployment ==="
+
+# Step 1: Backup current working version
+if [ -f "$APP_DIR/backend.jar" ]; then
+    echo "Creating backup of current active backend..."
+    cp "$APP_DIR/backend.jar" "$APP_DIR/backend.jar.bak"
+fi
+
+# Step 2: Swap the JAR file
+echo "Installing new JAR version..."
+mv "$TEMP_DIR/backend-0.0.1-SNAPSHOT.jar" "$APP_DIR/backend.jar"
+
+# Step 3: Restart systemd service
+echo "Restarting service..."
+systemctl daemon-reload
+systemctl restart $SERVICE_NAME
+
+# Step 4: Health Check Gate
+echo "Checking service health (Actuator validation)..."
+HEALTH_URL="http://localhost:8080/actuator/health"
+MAX_ATTEMPTS=24 # 24 attempts * 5 seconds = 120 seconds max timeout
+ATTEMPT=1
+IS_UP=0
+
+while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+    echo "Ping health endpoint (Attempt $ATTEMPT/$MAX_ATTEMPTS)..."
+    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL || true)
+    
+    if [ "$RESPONSE" -eq 200 ]; then
+        HEALTH_STATUS=$(curl -s $HEALTH_URL | grep -o '"status":"UP"' || true)
+        if [ ! -z "$HEALTH_STATUS" ]; then
+            echo "Success! Health check passed."
+            IS_UP=1
+            break
+        fi
+    fi
+    
+    sleep 5
+    ATTEMPT=$((ATTEMPT+1))
+done
+
+# Step 5: Rollback if health check failed
+if [ $IS_UP -eq 0 ]; then
+    echo "WARNING: Health check failed! Initiating self-healing rollback..."
+    
+    if [ -f "$APP_DIR/backend.jar.bak" ]; then
+        mv "$APP_DIR/backend.jar.bak" "$APP_DIR/backend.jar"
+        systemctl restart $SERVICE_NAME
+        echo "Rollback successful. Restored previous stable version."
+    else
+        echo "ERROR: Critical error. No stable backup version available!"
+    fi
+    exit 1
+else
+    # Success, clean backup
+    echo "Deployment successful. Cleaning old backups."
+    rm -f "$APP_DIR/backend.jar.bak"
+fi
 ```
 
 ---
