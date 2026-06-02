@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDF8F3;
+            color: #2C1810;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #E5D3C0;
+            padding: 40px;
+            box-shadow: 0 8px 30px rgba(92, 61, 46, 0.04);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #F5E6D3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #5C3D2E;
+            font-family: 'Playfair Display', serif;
+            text-transform: uppercase;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #8B6914;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .greeting {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2C1810;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #6B5344;
+            margin-bottom: 30px;
+        }
+
+        .otp-box {
+            background-color: #F5E6D3;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            color: #5C3D2E;
+            margin: 30px 0;
+            border: 1px solid #C4A882;
+            font-family: monospace;
+        }
+
+        .warning {
+            font-size: 12px;
+            color: #C0392B;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            border-top: 1px solid #F5E6D3;
+            padding-top: 20px;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #8B6914;
+        }
+
+        .policy {
+            font-size: 10px;
+            color: #BFA590;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">YATRA X</div>
+            <div class="tagline">Premium Calisthenics Gear</div>
+        </div>
+        <div class="greeting">Hello {{name}},</div>
+        <div class="message">
+            Thank you for choosing Yatra X. To complete your secure account registration and verify your email address,
+            please use the following one-time verification code (OTP):
+        </div>
+        <div class="otp-box">{{otp}}</div>
+        <div class="warning">This code is highly secure and valid for only 10 minutes. Do not share this OTP with
+            anyone.</div>
+        <div class="footer">
+            Thank you,<br /><strong>The Yatra X Security Team</strong>
+            <div class="policy">Handcrafted Premium Wooden Parallettes • No Return Policy</div>
+        </div>
+    </div>
+</body>
+
+</html>

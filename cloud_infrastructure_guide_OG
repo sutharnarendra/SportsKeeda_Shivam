@@ -1,0 +1,139 @@
+# Yatra X — Free Cloud Infrastructure & Storage Guide
+
+For a modern, highly interactive, 3D-heavy e-commerce website like **Yatra X**, storing and serving high-resolution videos, product images, 3D WebGL assets, and transactional database records can be very demanding. Storing these assets incorrectly can lead to high latency, poor performance, or unexpected bills.
+
+Fortunately, by leveraging modern **"Always Free"** developer tiers, you can build, host, and run your entire production application with zero monthly hosting costs.
+
+---
+
+## 1. Cloud Architecture Overview
+
+To achieve maximum performance (high-resolution asset streaming) with **zero cost**, we split our application into specialized free services:
+
+```mermaid
+flowchart TD
+    User([User Browser])
+    
+    %% Frontend Hosting
+    subgraph Frontend CDN [Frontend Hosting - FREE]
+        Vercel[Vercel / Cloudflare Pages]
+    end
+    
+    %% Backend Hosting
+    subgraph Server Compute [Spring Boot Server - FREE]
+        Oracle[Oracle Cloud Always Free VM]
+        Render[Render / Koyeb Docker]
+    end
+    
+    %% Media Storage
+    subgraph Object & Media Storage - FREE
+        R2[Cloudflare R2 Object Storage\n10 GB Storage, Zero Bandwidth Fees]
+        Cloudinary[Cloudinary Media CDN\n25 GB optimized Image & Video CDN]
+    end
+    
+    %% Database
+    subgraph Database - FREE
+        Neon[Neon Serverless Postgres\n3 GB Database]
+        TiDB[TiDB Serverless MySQL\n5 GB Database]
+    end
+
+    User -->|Requests Page & 3D Assets| Vercel
+    User -->|REST APIs + JWT Auth| Oracle
+    User -->|Streams High-Res Video/Images| R2
+    User -->|Loads Optimized Web Media| Cloudinary
+    
+    Oracle -->|Reads/Writes User & Order Data| Neon
+    Oracle -->|Uploads Custom Engravings| R2
+```
+
+---
+
+## 2. Dynamic Comparison of Free Cloud Services
+
+Here is a curated list of top-tier free cloud hosting providers, databases, and media storage networks that you can mix and match to run Yatra X completely free.
+
+### 2A. Frontend Hosting (React SPA & Three.js 3D Assets)
+Static files and Three.js client code must load instantly. Placing them on a global CDN is essential.
+
+| Provider | Free Limits | Best For | Pros & Cons |
+| :--- | :--- | :--- | :--- |
+| **Vercel** | • 100 GB Bandwidth/mo<br>• Serverless functions included | Hosting React SPAs | **Pros:** Industry standard, continuous Git deployments, seamless performance.<br>**Cons:** Bandwidth limit of 100GB (generous for standard sites, but keep heavy video on external storage). |
+| **Cloudflare Pages** | • **Unlimited Bandwidth**<br>• Unlimited builds | Hosting high-traffic sites | **Pros:** Uncapped bandwidth! You never have to worry about 3D models consuming your data transfer quota.<br>**Cons:** Slightly less streamlined serverless setup than Vercel. |
+
+---
+
+### 2B. Backend Server Hosting (Spring Boot)
+Running an active Spring Boot (Java VM) server requires continuous compute memory. 
+
+> [!WARNING]
+> Standard cloud VM free tiers (like AWS EC2, GCP, Azure) are only free for the **first 12 months**. The options below are **permanently free**.
+
+| Provider | Free Compute & RAM | Continuous Run | Pros & Cons |
+| :--- | :--- | :--- | :--- |
+| **Oracle Cloud Infrastructure (OCI)**<br>*(Highly Recommended)* | • **4 Ampere ARM OCPUs**<br>• **24 GB RAM**<br>• 200 GB SSD Block Storage | **YES**<br>(Runs 24/7 permanently) | **Pros:** The absolute most generous free tier in the cloud industry. You can easily run Spring Boot, multiple databases, and Docker containers with absolute peak performance.<br>**Cons:** Credit card required for verification; signup registration can occasionally be strict. |
+| **Koyeb** | • 1 Nano Instance (512MB RAM)<br>• Web App / Docker support | **YES**<br>(No auto-sleep) | **Pros:** Very simple deploy from Git or Docker Hub. Does not sleep when idle.<br>**Cons:** 512MB RAM is minimal; you must optimize Spring Boot memory footprint (`-XX:+UseSerialGC -Xmx350m`). |
+| **Render** | • 512MB RAM<br>• 500 Build minutes/mo | **NO**<br>(Sleeps after 15 mins of inactivity) | **Pros:** Extremely developer-friendly setup.<br>**Cons:** 50-second cold starts when spinning up from sleep; server shuts down if no traffic arrives for 15 minutes. |
+
+---
+
+### 2C. Database Hosting (User Credentials, Catalog, & Order Data)
+
+| Provider | Engine | Free Storage | Highlights |
+| :--- | :--- | :--- | :--- |
+| **Neon** | PostgreSQL | **3 GB** | Generous storage, serverless autoscaling, instant DB branching (creates a duplicate of your DB for safe feature-testing). |
+| **Supabase** | PostgreSQL | **500 MB** | Built-in authentication, database listening events, and integrates seamlessly with its own free storage buckets (1GB). |
+| **TiDB Cloud** | MySQL | **5 GB** | Excellent choice if your Spring Boot project is strictly configured for MySQL. Distributed, highly scalable, and fully free. |
+
+---
+
+### 2D. Media & High-Resolution Asset Storage
+To store **high-resolution videos** and **images**, do **not** upload them directly to the database or the Spring Boot server (which has limited space and high egress/transfer costs). Instead, use specialized free object stores:
+
+> [!IMPORTANT]
+> Streaming high-definition videos requires **massive bandwidth (egress)**. Traditional cloud providers charge hefty fees for downloads. **Cloudflare R2** charges **$0.00** for bandwidth, making it the perfect home for your videos.
+
+| Provider | Free Storage | Bandwidth (Egress) Cost | Best For |
+| :--- | :--- | :--- | :--- |
+| **Cloudflare R2**<br>*(S3 Compatible)* | **10 GB** | **100% FREE** (Unlimited Egress) | Storing and streaming raw high-definition video backgrounds, 3D GLB models, and product catalogs. |
+| **Cloudinary** | **25 GB** (Equivalent) | Covered under free credit quota | Automatic media optimization. For example, if a user uploads a 4K image, Cloudinary automatically compresses it, converts it to modern WebP format, and resizes it depending on the client's screen size. |
+| **Supabase Storage** | **1 GB** | 5 GB/month free egress | Quick asset uploads tied directly to your database tables. |
+
+---
+
+## 3. Recommended "Golden Stack" for Yatra X
+
+To deploy your platform successfully with premium performance, absolute zero cost, and zero hassle, we recommend the following stack combination:
+
+### 🚀 Architecture Roadmap
+1. **Frontend:** Deploy the React static bundle to **Vercel** or **Cloudflare Pages**.
+2. **Backend Server:** Spin up an **Oracle Cloud Always Free VM** (Ubuntu) and run your Spring Boot application using Docker.
+3. **Database:** Create a serverless PostgreSQL instance on **Neon** (or MySQL on **TiDB Cloud**). Copy the database connection URL and paste it into your Spring Boot `application.properties`.
+4. **Media (Video/Images):**
+   * Upload large 3D models (`.glb`) and raw presentation videos to **Cloudflare R2**.
+   * Deliver responsive product images dynamically through **Cloudinary** to keep web performance (Lighthouse score) above 90.
+
+---
+
+## 4. Setup Checklists for Media Upload Integration
+
+Here is how you would configure your frontend to load these assets for free:
+
+### A. Integrating Cloudflare R2 for 3D/Video
+Simply register a free Cloudflare account, enable **R2**, create a bucket, and upload your `.glb` model. Once uploaded, you are given a public URL. In your `constants.js` or three.js loader:
+
+```javascript
+// Example loading 3D asset from free Cloudflare R2 with zero bandwidth charges:
+const PARALLETTES_3D_MODEL_URL = "https://pub-<your-unique-id>.r2.dev/models/parallettes.glb";
+const HERO_VIDEO_BG_URL = "https://pub-<your-unique-id>.r2.dev/videos/hero_showcase.mp4";
+```
+
+### B. Integrating Cloudinary for Product Images
+Configure your custom domain or Cloudinary cloud-name in the source code. You can upload images via their dashboard or API, and append dynamic transformation parameters in the URL:
+
+```javascript
+// Cloudinary automatically scales down, compresses, and delivers the image in Next-Gen WebP:
+const productImageUrl = "https://res.cloudinary.com/yatrax/image/upload/w_800,q_auto,f_auto/v1/products/parallette_classic.jpg";
+```
+* `w_800` = resizes width to 800px on the fly.
+* `q_auto` = automatically compresses the image to the lowest file size that still looks visually perfect.
+* `f_auto` = automatically serves WebP or AVIF format if supported by the client browser.

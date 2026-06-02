@@ -34,11 +34,11 @@ flowchart TB
 
     subgraph Cache ["Caching Layer"]
         Caffeine["Caffeine In-Memory\nProduct catalog TTL=5min"]
-        Redis["Upstash Redis\nSessions + Cart + Token Blacklist"]
+        Redis["Upstash Redis\n(Mumbai Region)\nSessions + Cart + Token Blacklist"]
     end
 
     subgraph Data ["Data Layer"]
-        Postgres["Neon PostgreSQL\n3 GB Serverless"]
+        Postgres["Neon PostgreSQL\n0.5 GB Serverless"]
     end
 
     subgraph Media ["Media Storage"]
@@ -607,7 +607,83 @@ flowchart TD
 
 ---
 
-## 8. Deployment Architecture (Automated CI/CD with Rollback)
+## 8. Core Design Pillars (Authentication, Email & Latency)
+
+Yatra X relies on **three core pillars** to maintain maximum security, high deliverability, and sub-millisecond execution speeds under a permanent **$0.00/month** operational budget.
+
+### 8A. Google Sign-In (OAuth 2.0 Identity Flow)
+To minimize friction and prevent fake registration logs, Yatra X implements a direct **client-to-server Google OAuth 2.0 flow**.
+
+```mermaid
+sequenceDiagram
+    participant U as User Browser
+    participant R as React Frontend
+    participant G as Google Auth Server
+    participant S as Spring Boot Backend
+    participant DB as Neon Database
+
+    U->>R: Clicks "Sign in with Google"
+    R->>G: Launch OAuth 2.0 Consent Popup
+    G-->>U: Prompts user login & consent
+    U->>G: Approves access
+    G-->>R: Returns cryptographically signed ID Token (JWT)
+    R->>S: POST /api/auth/google (Sends Google ID Token)
+    S->>S: Validates Google signature with public keys
+    S->>DB: Query by email (Does user exist?)
+    alt User is new
+        S->>DB: Create user row (Social auth mode, no password required)
+    end
+    S->>S: Generate custom site session JWT (signed with JWT_SECRET)
+    S-->>R: Return custom site JWT + User profile JSON
+    R-->>U: Renders secure authenticated session
+```
+
+*   **Key Advantage:** Completely bypasses email verification for social signups since Google has already verified the email. 
+*   **Security:** Cryptographic validation is executed server-side via Google's official libraries, making it physically impossible to spoof logins.
+
+---
+
+### 8B. Hybrid Email Architecture (Gmail SMTP & Resend)
+Yatra X utilizes a robust, dual-option hybrid email configuration to maintain high deliverability in both testing and launch phases.
+
+```mermaid
+flowchart TD
+    Trigger["Email Verification Triggered\n(User Signup / Password Reset)"]
+    Config{"Active Environment\nConfiguration"}
+
+    Trigger --> Config
+    Config -->|"Local / Dev / No Domain"| Gmail["Option A: Gmail SMTP\n• Host: smtp.gmail.com\n• Port: 587\n• Authenticates via secure Google App Password\n• Delivers to any inbox instantly for free"]
+    Config -->|"Production / Custom Domain"| Resend["Option B: Resend API Gateway\n• Delivers via SPF/DKIM authenticated domain\n• Managed via RESEND_API_KEY\n• 3,000 free emails/month"]
+```
+
+*   **Development / Staging:** Spring Boot connects to a dedicated, site-specific Google Account using a **16-character App Password** via SSL on port `587`. This allows sending real verification codes to any customer globally without requiring domain registration.
+*   **Production Launch:** Transitioning to Resend requires only a custom domain DNS registration in Cloudflare, enabling professional `no-reply@domain.com` sending.
+
+---
+
+### 8C. Low Latency Data Architecture (Neon & Upstash Mumbai)
+To achieve desktop-like responsiveness, Yatra X localizes its caching and transaction execution layers to minimize network round-trips.
+
+```mermaid
+flowchart LR
+    Browser["User Browser\n(India)"]
+    CF["Cloudflare Edge\n(Mumbai/Chennai PoPs)"]
+    OracleVM["Oracle VM Backend\n(Mumbai Region)"]
+    Upstash["Upstash Redis\n(Mumbai Cache — <2ms)"]
+    Neon["Neon PgBouncer Pooler\n(Singapore DB — ~30ms)"]
+
+    Browser -->|"Edge routing"| CF
+    CF -->|"Fast transit"| OracleVM
+    OracleVM -->|"Local high-speed query"| Upstash
+    OracleVM -->|"Pooled Transaction"| Neon
+```
+
+1. **Mumbai Caching Layer:** Upstash Redis is deployed directly in the **Mumbai (ap-south-1) region**. Because the Oracle VM backend and Upstash are physically co-located in the same Indian data centers, cache retrieval takes **less than 2 milliseconds**.
+2. **Neon Transaction Pooler:** While the serverless Postgres engine lives in Singapore, latency is minimized by routing queries through the PgBouncer pooler (`prepareThreshold=0`), packing multiple queries into a single transactional pipe, and caching hot catalog items in L1 Caffeine memory.
+
+---
+
+## 9. Deployment Architecture (Automated CI/CD with Rollback)
 
 ```mermaid
 flowchart TD
@@ -806,7 +882,7 @@ fi
 
 ---
 
-## 9. Observability Architecture
+## 10. Observability Architecture
 
 ```mermaid
 flowchart LR
@@ -839,7 +915,7 @@ flowchart LR
 
 ---
 
-## 10. Design Principles Applied
+## 11. Design Principles Applied
 
 | Principle | How It's Applied |
 |---|---|
