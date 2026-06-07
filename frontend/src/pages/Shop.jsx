@@ -144,7 +144,7 @@ export default function Shop() {
       }
       return 0; // 'best' / default ordering
     });
-  }, [searchQuery, selectedWoods, maxPrice, minRating, sortBy, onlySale]);
+  }, [products, searchQuery, selectedWoods, maxPrice, minRating, sortBy, onlySale]);
 
   return (
     <main className="shop-page">
