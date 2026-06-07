@@ -49,7 +49,23 @@ export const useWishlistStore = create((set, get) => {
       } else {
         try {
           const saved = localStorage.getItem('yatra_x_wishlist');
-          set({ items: saved ? JSON.parse(saved) : [] });
+          let parsed = saved ? JSON.parse(saved) : [];
+          
+          // Migrate old format (direct product list) to new format ({ id, product })
+          let migrated = false;
+          parsed = parsed.map(item => {
+            if (item && !item.product) {
+              migrated = true;
+              return { id: item.id || Date.now(), product: item };
+            }
+            return item;
+          });
+          
+          if (migrated) {
+            localStorage.setItem('yatra_x_wishlist', JSON.stringify(parsed));
+          }
+          
+          set({ items: parsed });
         } catch (e) {
           set({ items: [] });
         }
@@ -57,8 +73,9 @@ export const useWishlistStore = create((set, get) => {
     },
 
     toggleWishlist: async (product) => {
+      if (!product) return;
       const currentItems = get().items;
-      const existingItem = currentItems.find((item) => item.product.id === product.id);
+      const existingItem = currentItems.find((item) => item && item.product && item.product.id === product.id);
 
       if (isAuth()) {
         try {
@@ -79,7 +96,7 @@ export const useWishlistStore = create((set, get) => {
       } else {
         let newItems;
         if (existingItem) {
-          newItems = currentItems.filter((item) => item.product.id !== product.id);
+          newItems = currentItems.filter((item) => item && item.product && item.product.id !== product.id);
         } else {
           newItems = [...currentItems, { id: Date.now(), product }];
         }
@@ -89,7 +106,7 @@ export const useWishlistStore = create((set, get) => {
     },
 
     isInWishlist: (productId) => {
-      return get().items.some((item) => item.product.id == productId);
+      return get().items.some((item) => item && item.product && item.product.id == productId);
     },
 
     clearWishlist: async () => {
