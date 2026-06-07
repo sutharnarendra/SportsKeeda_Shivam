@@ -16,7 +16,7 @@ export default function Wishlist() {
     }, [loadWishlist, isAuthenticated]);
 
     const handleAddToCart = (e, product) => {
-        e.stopPropogation();
+        e.stopPropagation();
         //Default to the first variant (Teak/Sheesham/etc.) if variants exist
         addToCart(product, 0, 1);
     };
@@ -58,8 +58,8 @@ export default function Wishlist() {
                     <div className="wishlist-grid animate-fade-up stagger-3">
                         {items.map((item) => {
                             const product = item.product;
-                            const basePrice = product.variant?.[0]?.price || product.price;
-                            const originalPrice = product.variant?.[0]?.originalPrice || product.originalPrice;
+                            const basePrice = product.variants?.[0]?.price || product.price;
+                            const originalPrice = product.variants?.[0]?.originalPrice || product.originalPrice;
                             const discount = originalPrice ? Math.round((1 - basePrice / originalPrice) * 100) : 0;
 
                             return (
@@ -71,7 +71,7 @@ export default function Wishlist() {
                                         ) : (
                                             <div className="wishlist-card-fallback" />
                                         )}
-                                        {discount > 0 && <span className="wishlist-discount-badge">-(discount)%</span>}
+                                        {discount > 0 && <span className="wishlist-discount-badge">-{discount}%</span>}
 
                                         {/* Floating delete button */}
                                         <button

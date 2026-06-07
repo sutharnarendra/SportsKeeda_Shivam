@@ -47,6 +47,9 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const reviews = useOrderStore((state) => state.reviews) || [];
+  const fetchReviews = useOrderStore((state) => state.fetchReviews);
+
   const [product, setProduct] = useState(null);
   const [loadingProduct, setLoadingProduct] = useState(true);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
@@ -99,8 +102,6 @@ export default function ProductDetail() {
     fetchProduct();
   }, [id, fetchReviews]);
 
-  const reviews = useOrderStore((state) => state.reviews) || [];
-  const fetchReviews = useOrderStore((state) => state.fetchReviews);
   const productReviews = useMemo(() => {
     return reviews.filter(r => r.productId === (product?.id || 0));
   }, [reviews, product?.id]);
