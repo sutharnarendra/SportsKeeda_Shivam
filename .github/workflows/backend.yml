@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'backend/**'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -29,18 +31,31 @@ jobs:
           chmod +x mvnw
           ./mvnw clean package -DskipTests
 
-      - name: Copy JAR to Oracle VM
-        uses: appleboy/scp-action@master
+      - name: Prepare Remote Directory
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.ORACLE_VM_IP }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            sudo mkdir -p /opt/yatrax/deploy-temp
+            sudo chown ubuntu:ubuntu /opt/yatrax/deploy-temp
+
+      - name: Copy JAR to Oracle VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
           source: "backend/target/backend-0.0.1-SNAPSHOT.jar"
           target: "/opt/yatrax/deploy-temp/"
           strip_components: 2
+          overwrite: true
+          timeout: 120s
 
       - name: Execute Remote SSH Deploy Script
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.ORACLE_VM_IP }}
           username: ubuntu
