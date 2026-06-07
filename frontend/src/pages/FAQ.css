@@ -1,6 +1,6 @@
 .faq-page {
     min-height: 80vh;
-    padding: 120px var(--space-large) 60px;
+    padding: 140px var(--space-lg) 60px;
     background: transparent;
     position: relative;
     z-index: 1;
@@ -97,7 +97,7 @@
 
 @media(max-width: 768px) {
     .faq-page {
-        padding: 100px var(--space-medium) 40px;
+        padding: 120px var(--space-md) 40px;
     }
 
     .faq-question-btn {
