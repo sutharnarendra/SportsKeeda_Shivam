@@ -6,10 +6,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.yatrax.model.Order;
+import com.yatrax.model.OrderStatus;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // Fetch a user's entire order history, sorted by newest first
     List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    // Fetch all pending orders for reconciliation
+    List<Order> findByStatus(OrderStatus status);
+
+    // Fetch paid orders where email notificatio delivery failed
+    List<Order> findByStatusAndEmailSentFalse(OrderStatus status);
 }

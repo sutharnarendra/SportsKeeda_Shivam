@@ -1,10 +1,14 @@
 import { create } from 'zustand';
+import api from '../utils/api';
 
 /**
  * Zustand Order and Review Store
  * Persists orders and custom user reviews, syncing immediately to dynamic product detail pages.
  */
 export const useOrderStore = create((set, get) => {
+
+  const isAuth = () => !!localStorage.getItem('yatra_x_token');
+
   // Load initial orders from localStorage
   const loadInitialOrders = () => {
     try {
@@ -15,88 +19,13 @@ export const useOrderStore = create((set, get) => {
     }
   };
 
-  // Load initial custom reviews from localStorage
+  // Load reviews from localStorage (populated by backend API fetches)
   const loadInitialReviews = () => {
     try {
       const saved = localStorage.getItem('yatra_x_reviews');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
-
-    // Default premium seed reviews if empty
-    return [
-      {
-        id: 101,
-        productId: 1,
-        author: "Vikram Malhotra",
-        rating: 5,
-        text: "Outstanding solid ash wood quality. The grip feel is phenomenal for handstands and L-sits. My training has improved drastically since I started using these. Highly recommend to every calisthenics enthusiast!",
-        date: "24 May 2026",
-      },
-      {
-        id: 102,
-        productId: 1,
-        author: "Priya Sharma",
-        rating: 4,
-        text: "Beautifully carved. The laser logo looks premium. Extremely sturdy construction — tested with 120kg bodyweight and zero flex.",
-        date: "18 May 2026",
-      },
-      {
-        id: 201,
-        productId: 2,
-        author: "Rohan Das",
-        rating: 5,
-        text: "Perfect portability. Fits in my backpack cleanly. The silicon pads do not slip on marble floors at all. Great for travel workouts.",
-        date: "20 May 2026",
-      },
-      {
-        id: 202,
-        productId: 2,
-        author: "Ananya Iyer",
-        rating: 5,
-        text: "I ordered the Sheesham variant and the grain pattern is gorgeous. Worth every rupee for the quality you get. My coach was impressed!",
-        date: "22 May 2026",
-      },
-      {
-        id: 301,
-        productId: 3,
-        author: "Karthik Nair",
-        rating: 5,
-        text: "The Elite Parallettes are on another level. The walnut finish is museum-grade. I use them for planche progressions daily and they haven't budged.",
-        date: "21 May 2026",
-      },
-      {
-        id: 302,
-        productId: 3,
-        author: "Sneha Reddy",
-        rating: 4,
-        text: "Solid build and absolutely beautiful design. The engraving service was a nice touch — got my gym name on it. Only wish they came in more colors.",
-        date: "19 May 2026",
-      },
-      {
-        id: 401,
-        productId: 4,
-        author: "Aditya Verma",
-        rating: 5,
-        text: "Mini parallettes are perfect for push-up variations. My home gym setup looks incredibly premium now. Fast delivery to Bangalore too!",
-        date: "23 May 2026",
-      },
-      {
-        id: 501,
-        productId: 5,
-        author: "Meera Joshi",
-        rating: 4,
-        text: "The portable travel set is exactly what I needed. Lightweight yet strong. Takes my street workout sessions to the next level wherever I go.",
-        date: "17 May 2026",
-      },
-      {
-        id: 601,
-        productId: 6,
-        author: "Arjun Kapoor",
-        rating: 5,
-        text: "Competition-grade parallettes — the balance and weight distribution is perfect for professional gymnastics training. Olympic-level equipment at an amazing price!",
-        date: "23 May 2026",
-      }
-    ];
+    } catch (e) { }
+    return [];
   };
 
   const persistOrders = (orders) => {
@@ -111,7 +40,93 @@ export const useOrderStore = create((set, get) => {
     orders: loadInitialOrders(),
     reviews: loadInitialReviews(),
 
-    // Add a newly placed checkout order
+    loadOrderHistory: async () => {
+      if (isAuth()) {
+        try {
+          const response = await api.get('/api/orders');
+          const mappedOrders = response.data.map(order => ({
+            id: order.id.toString(),
+            date: new Date(order.createdAt).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            }),
+            items: order.items.map(item => ({
+              id: item.product.id,
+              name: item.productName,
+              image: item.product.imageUrl,
+              quantity: item.quantity,
+              woodType: item.variantInfo || 'Default',
+              price: Number(item.productPrice),
+            })),
+            totalAmount: Number(order.total),
+            status: order.status,
+          }));
+          set({ orders: mappedOrders });
+        } catch (err) {
+          console.error("Failed to load order history from backend", err);
+        }
+      } else {
+        try {
+          const saved = localStorage.getItem('yatra_x_orders');
+          set({ orders: saved ? JSON.parse(saved) : [] });
+        } catch (e) {
+          set({ orders: [] });
+        }
+      }
+    },
+
+    // Place a new order calling API if authenticated, else localStorage
+    placeOrder: async (shippingForm, paymentMethod, items, grandTotal) => {
+      if (isAuth()) {
+        try {
+          const response = await api.post('/api/orders/checkout', null, {
+            params: {
+              shippingName: `${shippingForm.firstName} ${shippingForm.lastName}`,
+              shippingPhone: shippingForm.phone,
+              shippingAddress: shippingForm.address,
+              shippingCity: shippingForm.city,
+              shippingState: shippingForm.state,
+              shippingPincode: shippingForm.postalCode,
+              paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : paymentMethod === 'upi' ? 'UPI' : 'Credit Card',
+            }
+          });
+
+          const backendOrder = response.data;
+          const mappedOrder = {
+            id: backendOrder.id.toString(),
+            date: new Date(backendOrder.createdAt).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            }),
+            items: backendOrder.items.map(item => ({
+              id: item.product.id,
+              name: item.productName,
+              image: item.product.imageUrl,
+              quantity: item.quantity,
+              woodType: item.variantInfo || 'Default',
+              price: Number(item.productPrice),
+            })),
+            totalAmount: Number(backendOrder.total),
+            status: backendOrder.status,
+          };
+
+          set(state => ({
+            orders: [mappedOrder, ...state.orders]
+          }));
+
+          return { success: true, orderId: mappedOrder.id };
+        } catch (err) {
+          console.error("Backend checkout failed", err);
+          throw new Error(err.response?.data || err.message);
+        }
+      } else {
+        throw new Error('Please log in to place an order.');
+      }
+    },
+
+    // Kept for backward compatibility or local additions
     addOrder: (order) => {
       const updated = [order, ...get().orders];
       set({ orders: updated });
@@ -119,47 +134,49 @@ export const useOrderStore = create((set, get) => {
     },
 
     // Submit or update a review for a purchased product
-    addReview: (productId, rating, text, author) => {
-      const currentReviews = get().reviews;
-      const parsedProductId = parseInt(productId);
-      const activeAuthor = author || "Anonymous User";
+    addReview: async (productId, rating, text) => {
+      try {
+        await api.post(`/api/review/${productId}`, null, {
+          params: {
+            rating: parseInt(rating),
+            text: text
+          }
+        });
 
-      // Find if review already exists for this product by this specific author
-      const existingIndex = currentReviews.findIndex(
-        (r) => r.productId === parsedProductId && r.author === activeAuthor
-      );
-
-      let updated;
-      if (existingIndex > -1) {
-        updated = [...currentReviews];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          rating: parseInt(rating),
-          text: text,
-          date: new Date().toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-          }) + " (Updated)"
-        };
-      } else {
-        const newReview = {
-          id: Date.now(),
-          productId: parsedProductId,
-          author: activeAuthor,
-          rating: parseInt(rating),
-          text: text,
-          date: new Date().toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-          }),
-        };
-        updated = [newReview, ...currentReviews];
+        //Dynamic re-fetch of reviews for this product from the backend
+        await get().fetchReviews(productId);
+        return { success: true };
+      } catch (err) {
+        console.error("Failed to submit review to backend", err);
+        throw new Error(err.response?.data || err.message);
       }
+    },
 
-      set({ reviews: updated });
-      persistReviews(updated);
+    //Fetch reviews from the backend and update the store state
+    fetchReviews: async (productId) => {
+      try {
+        const response = await api.get(`/api/products/${productId}/reviews`);
+        const mappedReviews = response.data.map(r => ({
+          id: r.id,
+          productId: parseInt(productId),
+          author: r.authorName,
+          rating: r.rating,
+          text: r.text,
+          date: new Date(r.createdAt).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          })
+        }));
+
+        set(state => {
+          //Keep reviews for other products, but update/refresh reviews for this product
+          const otherReviews = state.reviews.filter(rev => rev.productId !== parseInt(productId));
+          return { reviews: [...mappedReviews, ...otherReviews] };
+        });
+      } catch (err) {
+        console.error("Failed to fetch reviews from backend", err);
+      }
     },
 
     // Get reviews for a specific product

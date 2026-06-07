@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Heart, ShoppingBag, Truck, RefreshCw, Shield, AlertTriangle, ArrowLeft, UploadCloud, Trash2, FileImage } from 'lucide-react';
-import { getProductById, SIMILAR_PRODUCTS } from '../utils/constants';
+import { Star, Heart, ShoppingBag, Truck, RefreshCw, Shield, AlertTriangle, ArrowLeft, UploadCloud, Trash2, FileImage, Loader2 } from 'lucide-react';
+import api from '../utils/api';
 import { useCartStore } from '../store/cartStore';
 import { useWishlistStore } from '../store/wishlistStore';
 import { useOrderStore } from '../store/orderStore';
@@ -47,8 +47,60 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const product = useMemo(() => getProductById(id), [id]);
+  const [product, setProduct] = useState(null);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoadingProduct(true);
+      try {
+        const response = await api.get('/api/products');
+        if (response.data && response.data.length > 0) {
+          const mapped = response.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || '',
+            price: Number(p.price),
+            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+            rating: p.rating ? Number(p.rating) : 5.0,
+            image: p.imageUrl || null,
+            video: p.videoUrl || null,
+            onSale: p.onSale,
+            category: p.category || '',
+            variants: p.variants ? p.variants.map(v => ({
+              id: v.id,
+              woodType: v.woodType,
+              price: Number(v.price),
+              originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+              swatchColor: v.swatchColor || '#8B6914'
+            })) : []
+          }));
+
+          const matched = mapped.find(p => p.id === Number(id));
+          if (matched) {
+            setProduct(matched);
+            setRecommendedProducts(mapped.filter(p => p.id !== Number(id)));
+            setLoadingProduct(false);
+            // Fetching reviews for this product from the database
+            fetchReviews(id);
+            return;
+          }
+        }
+        // No matching product found in the database
+        setProduct(null);
+      } catch (err) {
+        console.error("Failed to load product from backend", err);
+        setProduct(null);
+      } finally {
+        setLoadingProduct(false);
+      }
+    };
+    fetchProduct();
+  }, [id, fetchReviews]);
+
   const reviews = useOrderStore((state) => state.reviews) || [];
+  const fetchReviews = useOrderStore((state) => state.fetchReviews);
   const productReviews = useMemo(() => {
     return reviews.filter(r => r.productId === (product?.id || 0));
   }, [reviews, product?.id]);
@@ -59,6 +111,14 @@ export default function ProductDetail() {
 
   const addToCart = useCartStore((state) => state.addToCart);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
+
+  if (loadingProduct) {
+    return (
+      <main className="product-detail-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+        <Loader2 className="animate-spin" size={32} style={{ color: 'var(--color-accent-gold)' }} />
+      </main>
+    );
+  }
 
   if (!product) {
     return (
@@ -125,7 +185,7 @@ export default function ProductDetail() {
       customPricingAdded: (hasTextEngrave ? TEXT_ENGRAVE_COST : 0) + (hasLogoEngrave ? LOGO_ENGRAVE_COST : 0)
     };
     addToCart(cartProduct, selectedVariantIdx, quantity);
-    
+
     // Smooth scroll navigation to Cart
     navigate('/cart');
   };
@@ -133,7 +193,7 @@ export default function ProductDetail() {
   return (
     <main className="product-detail-page">
       <div className="detail-container">
-        
+
         {/* Breadcrumbs */}
         <div className="detail-breadcrumbs animate-fade-up stagger-1">
           <Link to="/">Home</Link>
@@ -145,7 +205,7 @@ export default function ProductDetail() {
 
         {/* Detail Panel Split Grid */}
         <div className="detail-layout">
-          
+
           {/* Media Section */}
           <div className="detail-gallery animate-scale-in stagger-2">
             <div className="gallery-main-frame">
@@ -200,7 +260,7 @@ export default function ProductDetail() {
           {/* Info Details Column */}
           <div className="detail-panel animate-fade-up stagger-3">
             <h1 className="detail-name">{product.name}</h1>
-            
+
             {/* Meta Row */}
             <div className="detail-meta-row">
               <div className="detail-rating">
@@ -244,7 +304,7 @@ export default function ProductDetail() {
               <p style={{ fontSize: 'var(--fs-tiny)', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
                 Make it yours. Choose initials, text (+₹{TEXT_ENGRAVE_COST}) or upload your logo (+₹{LOGO_ENGRAVE_COST}) for laser carving.
               </p>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input
                   type="text"
@@ -426,7 +486,7 @@ export default function ProductDetail() {
             id="detail-similar-carousel"
             title="Recommended Accessories"
             subtitle="Explore our range of matching handcrafted wooden training equipment."
-            products={SIMILAR_PRODUCTS}
+            products={recommendedProducts}
           />
         </section>
 

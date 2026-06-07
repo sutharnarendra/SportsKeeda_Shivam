@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, RotateCcw, AlertTriangle, ArrowUpDown } from 'lucide-react';
-import { ALL_PRODUCTS } from '../utils/constants';
+import api from '../utils/api';
 import ProductCard from '../components/ui/ProductCard';
 import './Shop.css';
 
@@ -12,6 +12,7 @@ export default function Shop() {
   const searchParamQuery = searchParams.get('search') || '';
 
   // Filter States
+  const [products, setProducts] = useState([]);
   const [selectedWoods, setSelectedWoods] = useState([]);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [minRating, setMinRating] = useState(0);
@@ -22,6 +23,40 @@ export default function Shop() {
 
   // If a search query is passed in the URL, we keep it in state
   const searchQuery = searchParamQuery;
+
+  // Fetch products from backend on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await api.get('/api/products');
+        if (response.data && response.data.length > 0) {
+          const mappedProducts = response.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || '',
+            price: Number(p.price),
+            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+            rating: p.rating ? Number(p.rating) : 5.0,
+            image: p.imageUrl || null,
+            video: p.videoUrl || null,
+            onSale: p.onSale,
+            category: p.category || '',
+            variants: p.variants ? p.variants.map(v => ({
+              id: v.id,
+              woodType: v.woodType,
+              price: Number(v.price),
+              originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+              swatchColor: v.swatchColor || '#8B6914'
+            })) : []
+          }));
+          setProducts(mappedProducts);
+        }
+      } catch (err) {
+        console.error("Failed to load products from database, using fallback", err);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   // Handle URL changes to reset state or update accordingly
   useEffect(() => {
@@ -61,7 +96,7 @@ export default function Shop() {
 
   // Filter and Sort Products
   const filteredProducts = useMemo(() => {
-    return ALL_PRODUCTS.filter((product) => {
+    return products.filter((product) => {
       // 1. Search Query filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();

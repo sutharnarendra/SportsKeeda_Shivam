@@ -6,11 +6,13 @@ import './Auth.css';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register, isAuthenticated, error, loading } = useAuthStore();
+  const { register, verify, isAuthenticated, error, loading } = useAuthStore();
 
-  // Multi-step Registration Wizard State (1 = Credentials, 2 = Address, 3 = Payment)
+  // Multi-step Registration Wizard State (1 = Credentials, 2 = Address, 3 = Payment, 4 = Verification)
   const [currentStep, setCurrentStep] = useState(1);
   const [validationError, setValidationError] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
 
   // Step 1: Account Credentials
   const [name, setName] = useState('');
@@ -119,7 +121,27 @@ export default function Register() {
     // Call the updated register function in the Zustand store
     const result = await register(name, email, password, address, finalPayment);
     if (result.success) {
-      navigate('/');
+      if (result.needsVerification) {
+        setRegisteredEmail(result.email || email);
+        setCurrentStep(4);
+      } else {
+        navigate('/');
+      }
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setValidationError('');
+
+    if (!otpCode.trim() || otpCode.trim().length !== 6) {
+      setValidationError('Please enter a 6-digit verification code.');
+      return;
+    }
+
+    const result = await verify(registeredEmail, otpCode.trim());
+    if (result.success) {
+      navigate('/login', { state: { verified: true } });
     }
   };
 
@@ -142,7 +164,8 @@ export default function Register() {
           <div className="step-indicator-bar">
             <div className={`step-dot ${currentStep === 1 ? 'step-dot--active' : ''} ${currentStep > 1 ? 'step-dot--completed' : ''}`} title="Account Credentials" />
             <div className={`step-dot ${currentStep === 2 ? 'step-dot--active' : ''} ${currentStep > 2 ? 'step-dot--completed' : ''}`} title="Shipping Address" />
-            <div className={`step-dot ${currentStep === 3 ? 'step-dot--active' : ''}`} title="Payment Preferences" />
+            <div className={`step-dot ${currentStep === 3 ? 'step-dot--active' : ''} ${currentStep > 3 ? 'step-dot--completed' : ''}`} title="Payment Preferences" />
+            <div className={`step-dot ${currentStep === 4 ? 'step-dot--active' : ''}`} title="Verify Email" />
           </div>
 
           {/* Form container */}
@@ -439,6 +462,34 @@ export default function Register() {
                     </>
                   )}
                 </div>
+              </form>
+            )}
+
+            {/* STEP 4: EMAIL VERIFICATION (OTP CHECK) */}
+            {currentStep === 4 && (
+              <form onSubmit={handleVerifyOtp} className="animate-fade-up">
+                <p style={{ fontSize: 'var(--fs-tiny)', color: 'var(--color-text-muted)', marginBottom: '15px', textAlign: 'center' }}>
+                  Step 4 of 4: Enter the 6-digit OTP code sent to your email.
+                </p>
+
+                <div className="form-group">
+                  <label className="form-label">Verification Code (6-digit OTP)</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    className="form-input"
+                    placeholder="e.g. 123456"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    disabled={loading}
+                    style={{ textAlign: 'center', letterSpacing: '8px', fontSize: 'var(--fs-medium)', fontWeight: 'bold' }}
+                  />
+                </div>
+
+                <button type="submit" className="btn-auth-submit" style={{ marginTop: '20px' }} disabled={loading}>
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : <><Sparkles size={16} /> Verify & Activate</>}
+                </button>
               </form>
             )}
 

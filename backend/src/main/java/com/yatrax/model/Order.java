@@ -80,6 +80,10 @@ public class Order {
     @Column(name = "payment_method", nullable = false)
     private String paymentMethod;
 
+    @Builder.Default
+    @Column(name = "email_sent", nullable = false)
+    private boolean emailSent = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

@@ -27,7 +27,7 @@ export default function Scene({ onAssemblyComplete }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const ASSEMBLY_DURATION = 9500; // 9.5 seconds majestic creation journey
+  const ASSEMBLY_DURATION = 3000; // 3 seconds creation journey
 
   const animate = useCallback((timestamp) => {
     if (!startTimeRef.current) startTimeRef.current = timestamp;

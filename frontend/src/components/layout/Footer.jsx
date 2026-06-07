@@ -44,11 +44,16 @@ export default function Footer() {
         <div>
           <h4 className="footer-heading">Support</h4>
           <div className="footer-links">
-            <a href="/faq">FAQ</a>
-            <a href="/contact">Contact Us</a>
-            <a href="/store-locator">Find a Store</a>
-            <a href="/policy">Shipping Policy</a>
-            <a href="/policy#no-return">Return Policy</a>
+            <a href='/faq'>FAQ</a>
+            <a href='/policy'>Store & Shipping Policies</a>
+            <div style={{ marginTop: '12px', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px' }}>
+              <span style={{ fontSize: 'var(--fs-tiny)', color: 'var(--color-wood-light)', display: 'block', marginBottom: '4px' }}>
+                Email: support@yatrax.in
+              </span>
+              <span style={{ fontSize: 'var(--fs-tiny)', color: 'var(--color-wood-light)', display: 'block' }}>
+                Call: +91 98765 43210
+              </span>
+            </div>
           </div>
         </div>
 

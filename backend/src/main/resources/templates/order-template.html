@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDF8F3;
+            color: #2C1810;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #E5D3C0;
+            padding: 40px;
+            box-shadow: 0 8px 30px rgba(92, 61, 46, 0.04);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #F5E6D3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #5C3D2E;
+            font-family: 'Playfair Display', serif;
+            text-transform: uppercase;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #8B6914;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .greeting {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2C1810;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #6B5344;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #5C3D2E;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #F5E6D3;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        .details-table th {
+            text-align: left;
+            padding: 10px;
+            background-color: #F5E6D3;
+            color: #5C3D2E;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .details-table td {
+            padding: 10px;
+            border-bottom: 1px solid #F5E6D3;
+            font-size: 14px;
+            color: #6B5344;
+        }
+
+        .total-row {
+            font-weight: bold;
+            color: #2C1810;
+        }
+
+        .shipping-info {
+            background-color: #FDF8F3;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px dashed #C4A882;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #6B5344;
+            margin-bottom: 25px;
+        }
+
+        .footer {
+            text-align: center;
+            border-top: 1px solid #F5E6D3;
+            padding-top: 20px;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #8B6914;
+        }
+
+        .policy {
+            font-size: 10px;
+            color: #BFA590;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">YATRA X</div>
+            <div class="tagline">Premium Calisthenics Gear</div>
+        </div>
+        <div class="greeting">Hello {{name}},</div>
+        <div class="message">
+            Thank you for your purchase! We are pleased to confirm that your payment has been processed successfully, and your order is now being processed. Below are your order details:
+        </div>
+
+        <div class="section-title">Order Information</div>
+        <table class="details-table">
+            <tr>
+                <td><strong>Order ID:</strong></td>
+                <td>#{{orderId}}</td>
+            </tr>
+            <tr>
+                <td><strong>Order Date:</strong></td>
+                <td>{{orderDate}}</td>
+            </tr>
+            <tr>
+                <td><strong>Payment Method:</strong></td>
+                <td>{{paymentMethod}}</td>
+            </tr>
+        </table>
+
+        <div class="section-title">Items Ordered</div>
+        <table class="details-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th style="text-align: right;">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{orderItems}}
+                <tr class="total-row">
+                    <td colspan="2" style="border-top: 2px solid #C4A882; padding-top: 15px;"><strong>Total Amount Paid:</strong></td>
+                    <td style="text-align: right; border-top: 2px solid #C4A882; padding-top: 15px;"><strong>${{total}}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-title">Shipping Address</div>
+        <div class="shipping-info">
+            <strong>{{shippingName}}</strong><br />
+            {{shippingAddress}}<br />
+            {{shippingCity}}, {{shippingState}} - {{shippingPincode}}<br />
+            Phone: {{shippingPhone}}
+        </div>
+
+        <div class="footer">
+            Thank you for shopping with us!<br /><strong>The Yatra X Team</strong>
+            <div class="policy">Handcrafted Premium Wooden Parallettes • No Return Policy</div>
+        </div>
+    </div>
+</body>
+
+</html>

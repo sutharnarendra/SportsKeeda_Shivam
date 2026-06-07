@@ -4,6 +4,7 @@ import { CreditCard, CheckCircle2, ChevronRight, ShoppingBag, ShieldCheck, Arrow
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 import { useOrderStore } from '../store/orderStore';
+import api from '../utils/api';
 import './Checkout.css';
 
 export default function Checkout() {
@@ -39,14 +40,15 @@ export default function Checkout() {
     cardName: '',
     cardExpiry: '',
   });
-  
+
   // Checkbox state to save payment method for future orders
   const [savePaymentForFuture, setSavePaymentForFuture] = useState(false);
 
-  // Active Payment Tracker Simulation Gateway State
+  // Active Payment Gateway Tracker State
   const [isPaying, setIsPaying] = useState(false);
   const [paymentStage, setPaymentStage] = useState(0);
   const [secureToken, setSecureToken] = useState('');
+  const [timeLeft, setTimeLeft] = useState(600); //10 minutes timer
 
   const subtotal = getTotalPrice();
   const shippingCost = subtotal > 3000 ? 0 : 250;
@@ -108,9 +110,9 @@ export default function Checkout() {
   };
 
   // Place Order Success Action (Launches strict payment tracking gateway loader panel)
-  const handlePlaceOrder = (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    
+
     // Auto-generate random unique user payment token
     const token = `SECURE-TX-${Math.floor(100000 + Math.random() * 900000)}-${Date.now().toString().substr(-4)}`;
     setSecureToken(token);
@@ -131,51 +133,143 @@ export default function Checkout() {
     // Launch secure dynamic payment tracking flow
     setIsPaying(true);
     setPaymentStage(0);
+    setTimeLeft(600);
+
+    //If it's Cash on Delivery, checkout directly and complete
+    if (paymentMethod === 'cod') {
+      try {
+        const res = await useOrderStore.getState().placeOrder(
+          shippingForm,
+          paymentMethod,
+          items,
+          grandTotal
+        );
+        if (res.success) {
+          setOrderId(res.orderId);
+          setIsPaying(false);
+          setStep('success');
+          clearCart();
+        }
+      } catch (err) {
+        alert(`Order placement failed: ${err.message}`);
+        setIsPaying(false);
+      }
+    } else {
+      // For UPI / Card, place order in PENDING status first, then show payment screens
+      try {
+        const res = await useOrderStore.getState().placeOrder(
+          shippingForm,
+          paymentMethod,
+          items,
+          grandTotal
+        );
+        if (res.success) {
+          setOrderId(res.orderId);
+          setPaymentStage(1); //Pending Order Created
+        }
+      } catch (err) {
+        alert(`Order placement failed: ${err.message}`);
+        setIsPaying(false);
+      }
+    }
   };
 
   // Payment progress advances automatically with intervals
+  const handleTimeout = () => {
+    alert("Payment window expired. Your order has been cancelled due to timeout.");
+    setIsPaying(false);
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Helper HMAC-SHA256 hashing method on client side for webhook signature verification
+  const generateSignature = async (message, secret) => {
+    const encoder = new TextEncoder();
+    const keyBuf = encoder.encode(secret);
+    const msgBuf = encoder.encode(message);
+    const key = await crypto.subtle.importKey("raw", keyBuf, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sigBuf = await crypto.subtle.sign("HMAC", key, msgBuf);
+    return Array.from(new Uint8Array(sigBuf))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  };
+
+  // Trigger payment webhook callback to the backend (production: gateway calls this directly)
+  const triggerPaymentWebhook = async (status) => {
+    try {
+      const signature = await generateSignature(orderId + status, "webhook-secret-key-yatrax");
+      await api.post('/api/orders/webhook', null, {
+        params: {
+          orderId: orderId,
+          status: status,
+          signature: signature
+        }
+      });
+      console.log(`Payment webhook triggered for order #${orderId}: ${status}`);
+    } catch (err) {
+      console.error(`Payment webhook failed: ${err.response?.data || err.message}`);
+    }
+  };
+
+  //Countdown timer for pending online payments
   useEffect(() => {
-    if (!isPaying) return;
+    if (!isPaying || paymentMethod === 'cod' || timeLeft <= 0 || !orderId) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isPaying, paymentMethod, timeLeft, orderId]);
+
+  //Order Status Polling loop (checks `/api/orders/status/{id}`)
+  useEffect(() => {
+    if (!isPaying || paymentMethod === 'cod' || !orderId || timeLeft <= 0) return;
+
+    const poll = setInterval(async () => {
+      try {
+        const response = await api.get(`/api/orders/status/${orderId}`);
+        const currentStatus = response.data; // PENDING, PROCESSING, CANCELLED
+
+        if (currentStatus === 'PROCESSING') {
+          clearInterval(poll);
+          setIsPaying(false);
+          setStep('success');
+          clearCart();
+        } else if (currentStatus === 'CANCELLED') {
+          clearInterval(poll);
+          alert("Order reconciliation daemon has cancelled this timed-out transaction.");
+          setIsPaying(false);
+        }
+      } catch (err) {
+        console.error("Status polling failed: ", err);
+      }
+    }, 3000); //poll every 3 seconds
+
+    return () => clearInterval(poll);
+  }, [isPaying, paymentMethod, orderId, timeLeft, clearCart]);
+
+  // Card payment gateway callback progression
+  useEffect(() => {
+    if (!isPaying || paymentMethod !== 'card' || !orderId) return;
 
     const interval = setInterval(() => {
       setPaymentStage((prev) => {
         if (prev >= 3) {
           clearInterval(interval);
-          // Complete final payment transaction
-          setTimeout(() => {
-            const mockOrderId = `YX-${Math.floor(100000 + Math.random() * 900000)}`;
-            
-            // Build and persist order history record inside useOrderStore
-            const newOrder = {
-              id: mockOrderId,
-              date: new Date().toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-              }),
-              items: items.map(item => ({
-                id: item.product.id,
-                name: item.product.name,
-                image: item.product.image,
-                quantity: item.quantity,
-                woodType: item.variant.woodType,
-                price: item.variant.price,
-                engravingRequest: item.product.engravingRequest,
-                engravingLogo: item.product.engravingLogo,
-                engravingLogoPreview: item.product.engravingLogoPreview,
-              })),
-              totalAmount: grandTotal,
-              status: 'Processing',
-            };
-
-            // Call store action
-            useOrderStore.getState().addOrder(newOrder);
-
-            setOrderId(mockOrderId);
-            setIsPaying(false);
-            setStep('success');
-            clearCart();
-          }, 800);
+          // Auto-trigger successful webhook to transition order status
+          triggerPaymentWebhook('PAID');
           return prev;
         }
         return prev + 1;
@@ -183,7 +277,7 @@ export default function Checkout() {
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [isPaying]);
+  }, [isPaying, paymentMethod, orderId]);
 
   // Render Left Column Form based on current step
   const renderFormColumn = () => {
@@ -370,7 +464,7 @@ export default function Checkout() {
               </div>
             </div>
           )}
-          
+
           <button type="submit" className="btn-checkout-next" style={{ marginTop: '20px' }}>
             Continue to Payment <ChevronRight size={16} />
           </button>
@@ -402,8 +496,8 @@ export default function Checkout() {
                     Use Saved Secure Profile Payment Method
                   </span>
                   <span style={{ fontSize: 'var(--fs-tiny)', color: 'var(--color-accent-green)', fontWeight: 'bold' }}>
-                    {decryptedPayment.type === 'upi' 
-                      ? `UPI: ${decryptedPayment.upiId}` 
+                    {decryptedPayment.type === 'upi'
+                      ? `UPI: ${decryptedPayment.upiId}`
                       : `Card: •••• •••• •••• ${decryptedPayment.cardNumber.slice(-4)}`
                     } (Encrypted)
                   </span>
@@ -440,7 +534,7 @@ export default function Checkout() {
             </div>
           ) : (
             <div className="payment-options animate-fade-up">
-              
+
               {/* COD */}
               <div
                 className={`payment-option-card ${paymentMethod === 'cod' ? 'payment-option-card--active' : ''}`}
@@ -635,57 +729,98 @@ export default function Checkout() {
     );
   }
 
-  // ACTIVE PAYMENT PROGRESS TRACKER
+  // ACTIVE PAYMENT PROGRESS TRACKER WITH TIMED QR CODE
   if (isPaying) {
     return (
       <main className="checkout-page">
         <div className="checkout-container">
           <div className="checkout-success-screen animate-scale-in" style={{ padding: 'var(--space-2xl) var(--space-xl)', textAlign: 'center' }}>
-            
+
             <div className="loader-box-payment" style={{ position: 'relative', width: '80px', height: '80px', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <RefreshCw className="animate-spin" size={40} style={{ color: 'var(--color-accent-gold)' }} />
               <Lock style={{ position: 'absolute', color: 'var(--color-wood-dark)' }} size={16} />
             </div>
 
             <h2 className="detail-name" style={{ fontSize: 'var(--fs-h2)', marginBottom: '5px' }}>
-              Initiating Secure Payment
+              {paymentMethod === 'cod' ? 'Processing Order' : 'Initiating Secure Payment'}
             </h2>
-            <p style={{ fontSize: 'var(--fs-small)', color: 'var(--color-text-secondary)', marginBottom: '30px' }}>
-              Requesting <strong>₹{grandTotal.toLocaleString('en-IN')}</strong> via secure banking client.
-            </p>
 
-            {/* Stage tracker terminal logs */}
-            <div style={{ maxWidth: '440px', margin: '0 auto', textAlign: 'left', background: 'rgba(0,0,0,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(92, 61, 46, 0.1)', fontSize: 'var(--fs-small)', fontFamily: 'monospace' }}>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: paymentStage >= 0 ? 'var(--color-wood-dark)' : 'var(--color-text-muted)' }}>
-                <div className={`step-dot ${paymentStage >= 0 ? 'step-dot--completed' : ''}`} style={{ width: '10px', height: '10px' }} />
-                <span>
-                  {paymentStage >= 0 ? `✓ Token Generated: ${secureToken}` : 'Generating transaction token...'}
-                </span>
-              </div>
+            {paymentMethod === 'cod' ? (
+              <p style={{ fontSize: 'var(--fs-small)', color: 'var(--color-text-secondary)', marginBottom: '30px' }}>
+                Completing order registration...
+              </p>
+            ) : paymentMethod === 'upi' ? (
+              <>
+                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--color-text-secondary)', marginBottom: '10px' }}>
+                  Scan the QR code below using GPay, PhonePe, Paytm, or BHIM to pay <strong>₹{grandTotal.toLocaleString('en-IN')}</strong>.
+                </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: paymentStage >= 1 ? 'var(--color-wood-dark)' : 'var(--color-text-muted)' }}>
-                <div className={`step-dot ${paymentStage >= 1 ? 'step-dot--completed' : ''} ${paymentStage === 0 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px' }} />
-                <span>
-                  {paymentStage >= 1 ? `✓ Auto Amount Request of ₹${grandTotal} Requested` : 'Requesting authorization client...'}
-                </span>
-              </div>
+                {/* Timed QR Code Container */}
+                <div className="checkout-qr-container">
+                  {orderId ? (
+                    <img
+                      className="checkout-qr-image"
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=5c3d2e&data=${encodeURIComponent(
+                        `upi://pay?pa=yatrax@okaxis&pn=YatraX&am=${grandTotal}&tn=Order-${orderId}`
+                      )}`}
+                      alt="UPI QR Code"
+                    />
+                  ) : (
+                    <div style={{ width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: 'var(--fs-tiny)' }}>
+                      Generating secure QR code...
+                    </div>
+                  )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: paymentStage >= 2 ? 'var(--color-wood-dark)' : 'var(--color-text-muted)' }}>
-                <div className={`step-dot ${paymentStage >= 2 ? 'step-dot--completed' : ''} ${paymentStage === 1 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px' }} />
-                <span>
-                  {paymentStage >= 2 ? '✓ Awaiting Device Authorization Callback' : 'Awaiting mobile device verification...'}
-                </span>
-              </div>
+                  <div className="checkout-timer-badge">
+                    <Lock size={12} />
+                    <span>Expires in: {formatTime(timeLeft)}</span>
+                  </div>
+                </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: paymentStage >= 3 ? 'var(--color-accent-green)' : 'var(--color-text-muted)' }}>
-                <div className={`step-dot ${paymentStage >= 3 ? 'step-dot--completed' : ''} ${paymentStage === 2 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px' }} />
-                <span style={{ fontWeight: paymentStage >= 3 ? 'bold' : 'normal' }}>
-                  {paymentStage >= 3 ? '✓ Secure Payment Verified successfully!' : 'Awaiting response verification...'}
-                </span>
-              </div>
+                <p style={{ fontSize: 'var(--fs-tiny)', color: 'var(--color-text-muted)', maxWidth: '400px', margin: '0 auto 20px' }}>
+                  Do not close or refresh this page. Your checkout session is monitored, and this page will automatically redirect once your payment captures.
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 'var(--fs-small)', color: 'var(--color-text-secondary)', marginBottom: '30px' }}>
+                  Processing payment authorization of <strong>₹{grandTotal.toLocaleString('en-IN')}</strong>.
+                </p>
+                {/* Stage tracker terminal logs */}
+                <div style={{ maxWidth: '440px', margin: '0 auto 20px', textAlign: 'left', background: 'rgba(0,0,0,0.03)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(92, 61, 46, 0.1)', fontSize: 'var(--fs-small)', fontFamily: 'monospace' }}>
 
-            </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: paymentStage >= 0 ? 'var(--color-wood-dark)' : 'var(--color-text-muted)' }}>
+                    <div className={`step-dot ${paymentStage >= 0 ? 'step-dot--completed' : ''}`} style={{ width: '10px', height: '10px' }} />
+                    <span>
+                      {paymentStage >= 0 ? `✓ Token Generated: ${secureToken}` : 'Generating transaction token...'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: paymentStage >= 1 ? 'var(--color-wood-dark)' : 'var(--color-text-muted)' }}>
+                    <div className={`step-dot ${paymentStage >= 1 ? 'step-dot--completed' : ''} ${paymentStage === 0 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px' }} />
+                    <span>
+                      {paymentStage >= 1 ? `✓ Auto Amount Request of ₹${grandTotal} Requested` : 'Requesting authorization client...'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: paymentStage >= 2 ? 'var(--color-wood-dark)' : 'var(--color-text-muted)' }}>
+                    <div className={`step-dot ${paymentStage >= 2 ? 'step-dot--completed' : ''} ${paymentStage === 1 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px' }} />
+                    <span>
+                      {paymentStage >= 2 ? '✓ Awaiting Device Authorization Callback' : 'Awaiting mobile device verification...'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: paymentStage >= 3 ? 'var(--color-accent-green)' : 'var(--color-text-muted)' }}>
+                    <div className={`step-dot ${paymentStage >= 3 ? 'step-dot--completed' : ''} ${paymentStage === 2 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px' }} />
+                    <span style={{ fontWeight: paymentStage >= 3 ? 'bold' : 'normal' }}>
+                      {paymentStage >= 3 ? '✓ Secure Payment Verified successfully!' : 'Awaiting response verification...'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+
+
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', marginTop: '30px', fontSize: 'var(--fs-tiny)', color: 'var(--color-text-muted)' }}>
               <ShieldCheck size={14} style={{ color: 'var(--color-accent-green)' }} />
@@ -720,7 +855,7 @@ export default function Checkout() {
     <main className="checkout-page">
       <div className="checkout-container">
         <h1 className="checkout-title animate-fade-up stagger-1">Secure Checkout</h1>
-        
+
         {/* Multi-step indicator bar */}
         <div className="checkout-steps animate-fade-up stagger-2">
           <div className={`checkout-step ${step === 'shipping' ? 'checkout-step--active' : ''}`}>
@@ -741,7 +876,7 @@ export default function Checkout() {
 
         {/* Dynamic checkout split columns */}
         <div className="checkout-layout">
-          
+
           {/* Left Column Form */}
           <div className="animate-fade-up stagger-3" style={{ width: '100%' }}>
             {renderFormColumn()}
@@ -752,7 +887,7 @@ export default function Checkout() {
             <h2 className="summary-title" style={{ fontSize: 'var(--fs-medium)', marginBottom: '15px' }}>
               Order Review
             </h2>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', maxHeight: '180px', overflowY: 'auto', paddingRight: '5px' }}>
               {items.map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid rgba(92, 61, 46, 0.05)', paddingBottom: '8px' }}>

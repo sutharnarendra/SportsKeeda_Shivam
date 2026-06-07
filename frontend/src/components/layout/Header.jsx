@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Search, User, ShoppingCart, Menu, X, LogOut } from 'lucide-react';
+import { Search, User, ShoppingCart, Menu, X, LogOut, Heart } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { useAuthStore } from '../../store/authStore';
+import { useWishlistStore } from '../../store/wishlistStore';
 import './Header.css';
 
 export default function Header() {
@@ -18,6 +19,10 @@ export default function Header() {
   const getTotalItems = useCartStore((state) => state.getTotalItems);
   const { user, isAuthenticated, logout } = useAuthStore();
 
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const loadWishlist = useWishlistStore((state) => state.loadWishlist);
+  const wishlistCount = wishlistItems.length;
+
   const cartCount = getTotalItems();
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -30,6 +35,15 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const loadCart = useCartStore((state) => state.loadCart);
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
+
+  useEffect(() => {
+    loadWishlist();
+  }, [loadWishlist, isAuthenticated]);
 
   // Close mobile drawer on route transition
   useEffect(() => {
@@ -110,6 +124,19 @@ export default function Header() {
               <User size={20} />
             </Link>
           )}
+
+          <Link
+            to="/wishlist"
+            className="header-action-btn"
+            aria-label='Wishlist'
+            id='btn-wishlist'
+            style={{ position: 'relative' }}
+          >
+            <Heart size={20} />
+            {wishlistCount > 0 && (
+              <span className='badge' style={{ backgroundColor: 'var(--color-wood-dark)' }}>{wishlistCount}</span>
+            )}
+          </Link>
 
           <Link
             to="/cart"

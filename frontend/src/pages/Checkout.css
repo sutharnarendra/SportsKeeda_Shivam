@@ -304,3 +304,39 @@
   }
 }
 
+/* QR code and checkout timer styling */
+.checkout-qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-lg) auto;
+  padding: var(--space-lg);
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(92, 61, 46, 0.15);
+  max-width: 320px;
+}
+
+.checkout-qr-image {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  background: white;
+  padding: 10px;
+  border: 1px solid rgba(92, 61, 46, 0.08);
+  border-radius: var(--radius-md);
+}
+
+.checkout-timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(192, 57, 43, 0.08);
+  color: #C0392B;
+  border-radius: var(--radius-full);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-small);
+  margin-top: var(--space-xs);
+}

@@ -185,14 +185,101 @@
     grid-template-columns: 1fr !important;
     gap: var(--space-sm);
   }
-  
+
   .auth-card {
     padding: var(--space-xl) var(--space-md) !important;
   }
-  
+
   .auth-title {
     font-size: var(--fs-medium) !important;
   }
 }
 
+/* --- Premium Animated Google Sign-In Button --- */
 
+.google-btn-wrapper {
+  position: relative;
+  width: 100%;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-xs);
+}
+
+/* Custom backgrond button that animates */
+.custom-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  border: 1px solid rgba(92, 61, 46, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Expanded state (on hover) */
+.custom-google-btn.expanded {
+  width: 100%;
+  border-radius: var(--radius-full);
+  padding: 0 24px;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(66, 133, 244, 0.35);
+  border-color: #4285f4;
+  background: #ffffff;
+}
+
+/* Logo Rotation Effect */
+.google-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-google-btn.expanded .google-icon-container {
+  transform: rotate(360deg);
+  margin-right: 12px;
+}
+
+/* Text Fade - In and Slide */
+.google-btn-text {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-bold);
+  color: #1f1f1f;
+  opacity: 0;
+  max-width: 0;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-google-btn.expanded .google-btn-text {
+  opacity: 1;
+  max-width: 200px;
+}
+
+/* Transparent Google ifram overlay */
+#google-signin-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.001;
+  /* Fully clickable, but invisible */
+  z-index: 2;
+  cursor: pointer;
+}
+
+#google-signin-button * {
+  cursor: pointer;
+}
