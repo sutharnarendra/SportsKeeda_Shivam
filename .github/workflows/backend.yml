@@ -64,10 +64,10 @@ jobs:
             set -e
             echo "=== Deploying Yatra X Backend ==="
 
-            # Move JAR to application directory
+            # Move JAR to application directory (matches systemd ExecStart path)
             sudo mkdir -p /opt/yatrax
-            sudo cp /opt/yatrax/deploy-temp/backend-0.0.1-SNAPSHOT.jar /opt/yatrax/yatrax.jar
-            sudo chown ubuntu:ubuntu /opt/yatrax/yatrax.jar
+            sudo cp /opt/yatrax/deploy-temp/backend-0.0.1-SNAPSHOT.jar /opt/yatrax/backend.jar
+            sudo chown ubuntu:ubuntu /opt/yatrax/backend.jar
 
             # Restart the systemd service (or start if first run)
             if systemctl is-active --quiet yatrax.service; then
@@ -85,6 +85,6 @@ jobs:
             sudo systemctl status yatrax.service --no-pager || true
 
             # Cleanup temp
-            rm -rf /opt/yatrax/deploy-temp
+            sudo rm -rf /opt/yatrax/deploy-temp
 
             echo "=== Deployment complete ==="
