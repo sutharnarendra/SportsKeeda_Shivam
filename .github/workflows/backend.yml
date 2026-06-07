@@ -54,11 +54,37 @@ jobs:
           overwrite: true
           timeout: 120s
 
-      - name: Execute Remote SSH Deploy Script
+      - name: Deploy JAR and Restart Service
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.ORACLE_VM_IP }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
-            sudo /opt/yatrax/deploy.sh
+            set -e
+            echo "=== Deploying Yatra X Backend ==="
+
+            # Move JAR to application directory
+            sudo mkdir -p /opt/yatrax
+            sudo cp /opt/yatrax/deploy-temp/backend-0.0.1-SNAPSHOT.jar /opt/yatrax/yatrax.jar
+            sudo chown ubuntu:ubuntu /opt/yatrax/yatrax.jar
+
+            # Restart the systemd service (or start if first run)
+            if systemctl is-active --quiet yatrax.service; then
+              echo "Restarting yatrax.service..."
+              sudo systemctl restart yatrax.service
+            else
+              echo "Starting yatrax.service for the first time..."
+              sudo systemctl daemon-reload
+              sudo systemctl enable yatrax.service
+              sudo systemctl start yatrax.service
+            fi
+
+            # Wait a few seconds and check status
+            sleep 5
+            sudo systemctl status yatrax.service --no-pager || true
+
+            # Cleanup temp
+            rm -rf /opt/yatrax/deploy-temp
+
+            echo "=== Deployment complete ==="
