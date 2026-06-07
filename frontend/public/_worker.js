@@ -6,7 +6,7 @@ export default {
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/actuator/')) {
       const backendUrl = new URL(request.url);
       backendUrl.protocol = 'http:';
-      backendUrl.hostname = '80.225.196.106';
+      backendUrl.hostname = '80.225.196.106.nip.io';
       backendUrl.port = '8080';
       
       // Clone the request to preserve headers/body (crucial for POST/PUT)
