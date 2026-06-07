@@ -115,7 +115,7 @@ export default function Shop() {
       }
 
       // 3. Price Filter (Check if base price or any variant price is below maxPrice)
-      const lowestPrice = product.variants
+      const lowestPrice = product.variants && product.variants.length > 0
         ? Math.min(...product.variants.map((v) => v.price))
         : product.price;
       if (lowestPrice > maxPrice) return false;
@@ -130,13 +130,13 @@ export default function Shop() {
     }).sort((a, b) => {
       // Sorting
       if (sortBy === 'price-asc') {
-        const priceA = a.variants ? Math.min(...a.variants.map((v) => v.price)) : a.price;
-        const priceB = b.variants ? Math.min(...b.variants.map((v) => v.price)) : b.price;
+        const priceA = a.variants && a.variants.length > 0 ? Math.min(...a.variants.map((v) => v.price)) : a.price;
+        const priceB = b.variants && b.variants.length > 0 ? Math.min(...b.variants.map((v) => v.price)) : b.price;
         return priceA - priceB;
       }
       if (sortBy === 'price-desc') {
-        const priceA = a.variants ? Math.min(...a.variants.map((v) => v.price)) : a.price;
-        const priceB = b.variants ? Math.min(...b.variants.map((v) => v.price)) : b.price;
+        const priceA = a.variants && a.variants.length > 0 ? Math.min(...a.variants.map((v) => v.price)) : a.price;
+        const priceB = b.variants && b.variants.length > 0 ? Math.min(...b.variants.map((v) => v.price)) : b.price;
         return priceB - priceA;
       }
       if (sortBy === 'rating') {
