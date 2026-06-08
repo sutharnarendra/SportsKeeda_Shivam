@@ -3,6 +3,8 @@ package com.yatrax.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,24 +19,29 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Cacheable(value = "products", key = "'all'")
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
+    @Cacheable(value = "products", key = "'slug:' + #slug")
     public Product getProductBySlug(String slug) {
         return productRepository.findBySlug(slug)
                 .orElseThrow(() -> new IllegalArgumentException("Error: Product not found with slug: " + slug));
     }
 
+    @Cacheable(value = "products", key = "'category:' + #category")
     public List<Product> getProductsByCategory(String category) {
         return productRepository.findByCategory(category);
     }
 
+    @Cacheable(value = "products", key = "'sale'")
     public List<Product> getSaleProducts() {
         return productRepository.findByOnSaleTrue();
     }
 
     // Creates a new product and links nested wood variants
+    @CacheEvict(value = "products", allEntries = true)
     public Product createProduct(Product product) {
         if (productRepository.findBySlug(product.getSlug()).isPresent()) {
             throw new IllegalArgumentException(
