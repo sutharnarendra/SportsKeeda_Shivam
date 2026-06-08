@@ -64,7 +64,7 @@ public class SecurityConfig {
                                                                                                               // sessions
                 .authorizeHttpRequests(auth -> auth
                         // 1. Public authentication routes (Register and Login)
-                        .requestMatchers("/api/auth/**", "/api/products/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/products", "/api/products/**").permitAll()
                         // 2. Public health checks for deployment
                         .requestMatchers("/actuator/health").permitAll()
                         // 3. Prometheus metrics strictly locked to system administrators
