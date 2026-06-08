@@ -37,6 +37,8 @@ public class ProductVariant {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonBackReference
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private Product product;
 
     @Column(name = "wood_type", nullable = false)

@@ -31,19 +31,12 @@ public class ProductService {
     private CatalogCacheService catalogCacheService;
 
     private Product detachProduct(Product product) {
-        if (product != null && product.getVariants() != null) {
-            product.setVariants(new ArrayList<>(product.getVariants()));
-        }
-        return product;
+        return Product.clean(product);
     }
 
     private List<Product> detachProducts(List<Product> products) {
-        if (products != null) {
-            for (Product p : products) {
-                detachProduct(p);
-            }
-        }
-        return products;
+        if (products == null) return null;
+        return products.stream().map(Product::clean).toList();
     }
 
     public List<Product> getAllProducts() {
@@ -67,7 +60,7 @@ public class ProductService {
         Product product = productRepository.findBySlug(slug)
                 .orElseThrow(() -> new IllegalArgumentException("Error: Product not found with slug: " + slug));
         
-        detachProduct(product);
+        product = detachProduct(product);
 
         // Save back to Redis
         try {
@@ -98,7 +91,7 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Error: Product not found with ID: " + id));
         
-        detachProduct(product);
+        product = detachProduct(product);
 
         // Save back to Redis in both directions
         try {

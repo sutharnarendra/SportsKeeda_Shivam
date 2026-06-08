@@ -91,4 +91,46 @@ public class Product {
             this.rating = BigDecimal.ZERO;
         }
     }
+
+    public static Product clean(Product p) {
+        if (p == null) return null;
+        Product copy = Product.builder()
+                .id(p.getId())
+                .name(p.getName())
+                .slug(p.getSlug())
+                .description(p.getDescription())
+                .price(p.getPrice())
+                .originalPrice(p.getOriginalPrice())
+                .stock(p.getStock())
+                .rating(p.getRating())
+                .review_count(p.getReview_count())
+                .onSale(p.isOnSale())
+                .category(p.getCategory())
+                .imageUrl(p.getImageUrl())
+                .videoUrl(p.getVideoUrl())
+                .modelUrl(p.getModelUrl())
+                .createdAt(p.getCreatedAt())
+                .build();
+        
+        if (p.getVariants() != null) {
+            List<ProductVariant> copyVariants = new ArrayList<>();
+            for (ProductVariant v : p.getVariants()) {
+                ProductVariant vCopy = ProductVariant.builder()
+                        .id(v.getId())
+                        .product(copy)
+                        .woodType(v.getWoodType())
+                        .price(v.getPrice())
+                        .originalPrice(v.getOriginalPrice())
+                        .stock(v.getStock())
+                        .swatchColor(v.getSwatchColor())
+                        .createdAt(v.getCreatedAt())
+                        .build();
+                copyVariants.add(vCopy);
+            }
+            copy.setVariants(copyVariants);
+        } else {
+            copy.setVariants(new ArrayList<>());
+        }
+        return copy;
+    }
 }

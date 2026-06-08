@@ -148,10 +148,18 @@ export default function Home() {
   }, [allReviews]);
 
   useEffect(() => {
+    // 1. If 3D assembly completes successfully, trigger showing feature cards
     if (isAssembled) {
-      const timeout = setTimeout(() => setShowFeatureCards(true), 400);
+      const timeout = setTimeout(() => setShowFeatureCards(true), 200);
       return () => clearTimeout(timeout);
     }
+
+    // 2. Safety fallback: Force show the hero copy after 1.5 seconds regardless of 3D state
+    const fallbackTimeout = setTimeout(() => {
+      setShowFeatureCards(true);
+    }, 1500);
+
+    return () => clearTimeout(fallbackTimeout);
   }, [isAssembled]);
 
   return (

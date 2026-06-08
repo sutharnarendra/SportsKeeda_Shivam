@@ -1,6 +1,7 @@
 package com.yatrax.service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,16 +22,19 @@ public class CatalogCacheService {
     // 1. Get entire catalog
     @Cacheable(value = "yatra:catalog:all", key = "'all'")
     public List<Product> getCatalog() {
-        return productRepository.findAll();
+        return new ArrayList<>(productRepository.findAll().stream()
+                .map(Product::clean)
+                .toList());
     }
 
     // 2. Get catalog filtered by wood type/material name
     @Cacheable(value = "yatra:catalog:material", key = "#materialName")
     public List<Product> getCatalogByMaterial(String materialName) {
-        return productRepository.findAll().stream()
+        return new ArrayList<>(productRepository.findAll().stream()
                 .filter(p -> p.getVariants().stream()
                         .anyMatch(v -> v.getWoodType().equalsIgnoreCase(materialName)))
-                .toList();
+                .map(Product::clean)
+                .toList());
     }
 
     // 3. Get filter metadata bounds
@@ -58,9 +62,9 @@ public class CatalogCacheService {
     // 4. Get featured product IDs
     @Cacheable(value = "yatra:featured:home", key = "'home'")
     public List<Long> getFeaturedProductIds() {
-        return productRepository.findByCategory("Parallettes").stream()
+        return new ArrayList<>(productRepository.findByCategory("Parallettes").stream()
                 .map(Product::getId)
-                .toList();
+                .toList());
     }
 
     // 5. Evict all catalog caches

@@ -7,12 +7,14 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://80.225.196.106:8080',
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true,
+        secure: false
       },
       '/actuator': {
-        target: 'http://80.225.196.106:8080',
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true,
+        secure: false
       }
     }
   }

@@ -1,9 +1,29 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, Component } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Loader from './components/ui/Loader';
+
+// Error boundary to prevent 3D canvas crashes from taking down the entire website
+class SceneErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('[Yatra X] 3D Background Canvas failed to render:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return null; // Suppress crash and fallback gracefully to pure CSS background
+    }
+    return this.props.children;
+  }
+}
 
 const Scene = lazy(() => import('./components/three/Scene'));
 import Home from './pages/Home';
@@ -55,9 +75,11 @@ function App() {
 
             {/* Global persistent 3D animation background */}
             <div className="scene-fixed-bg">
-              <Suspense fallback={null}>
-                <Scene />
-              </Suspense>
+              <SceneErrorBoundary>
+                <Suspense fallback={null}>
+                  <Scene />
+                </Suspense>
+              </SceneErrorBoundary>
             </div>
 
             <Routes>

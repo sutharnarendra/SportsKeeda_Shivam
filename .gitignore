@@ -46,3 +46,4 @@ Thumbs.db
 **/*.suo
 **/*.user
 **/*.sln
+**/application-local.properties
