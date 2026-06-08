@@ -76,8 +76,17 @@ export default function Home() {
     const fetchProducts = async () => {
       try {
         const response = await api.get('/api/products');
-        if (response.data && response.data.length > 0) {
-          const mappedProducts = response.data.map(p => ({
+        // Handle various response shapes: plain array, {data: [...]}, or string
+        let rawProducts = response.data;
+        if (typeof rawProducts === 'string') {
+          try { rawProducts = JSON.parse(rawProducts); } catch (_) { rawProducts = []; }
+        }
+        // Some APIs nest inside a data key
+        if (rawProducts && !Array.isArray(rawProducts) && Array.isArray(rawProducts.data)) {
+          rawProducts = rawProducts.data;
+        }
+        if (Array.isArray(rawProducts) && rawProducts.length > 0) {
+          const mappedProducts = rawProducts.map(p => ({
             id: p.id,
             name: p.name,
             description: p.description || '',
@@ -88,7 +97,7 @@ export default function Home() {
             video: p.videoUrl || null,
             onSale: p.onSale,
             category: p.category || '',
-            variants: p.variants ? p.variants.map(v => ({
+            variants: Array.isArray(p.variants) ? p.variants.map(v => ({
               id: v.id,
               woodType: v.woodType,
               price: Number(v.price),

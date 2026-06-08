@@ -72,9 +72,15 @@ export default function ProductCarousel({ title, subtitle, products, id }) {
 
       {/* Scrollable product track */}
       <div className="carousel__track" ref={scrollRef}>
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+        {products.length > 0 ? (
+          products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))
+        ) : (
+          <div style={{ padding: '2rem', textAlign: 'center', width: '100%', color: 'var(--color-text-muted)', fontSize: 'var(--fs-small)' }}>
+            Loading products...
+          </div>
+        )}
       </div>
 
       {/* Fade edges for scroll indication */}
