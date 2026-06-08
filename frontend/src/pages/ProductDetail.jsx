@@ -117,6 +117,8 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [engravingText, setEngravingText] = useState('');
   const [mediaTab, setMediaTab] = useState('image'); // 'image', 'video'
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
 
   const addToCart = useCartStore((state) => state.addToCart);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
@@ -158,8 +160,7 @@ export default function ProductDetail() {
   const TEXT_ENGRAVE_COST = 299;
   const LOGO_ENGRAVE_COST = 799;
 
-  const [logoFile, setLogoFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
+
 
   const hasTextEngrave = engravingText.trim().length > 0;
   const hasLogoEngrave = !!logoFile;
