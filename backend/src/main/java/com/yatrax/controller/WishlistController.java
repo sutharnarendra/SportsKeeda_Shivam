@@ -21,7 +21,6 @@ import com.yatrax.repository.UserRepository;
 import com.yatrax.security.UserDetailsImpl;
 import com.yatrax.service.WishlistService;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/wishlist")
 public class WishlistController {

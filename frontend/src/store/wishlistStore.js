@@ -11,11 +11,13 @@ export const useWishlistStore = create((set, get) => {
 
   //Map backend WishlistItem structure to frontend store structure
   const mapWishlistItems = (backendItems) => {
+    const slugify = str => str ? str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : '';
     return backendItems.map(item => ({
       id: item.id, //the database primary key of WishlistItem
       product: {
         id: item.product.id,
         name: item.product.name,
+        slug: item.product.slug ?? slugify(item.product.name),
         description: item.product.description || '',
         price: Number(item.product.price),
         originalPrice: item.product.originalPrice ? Number(item.product.originalPrice) : null,

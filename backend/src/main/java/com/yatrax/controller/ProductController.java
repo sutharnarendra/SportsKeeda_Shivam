@@ -14,17 +14,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.yatrax.model.Product;
+import com.yatrax.dto.FilterMetadata;
+import com.yatrax.service.CatalogCacheService;
 import com.yatrax.service.ProductService;
 
 import jakarta.validation.Valid;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private CatalogCacheService catalogCacheService;
 
     // 1. Fetch all products (with optional dynamic filters)
     @GetMapping
@@ -38,11 +42,28 @@ public class ProductController {
         if (onSale != null && onSale) {
             return ResponseEntity.ok(productService.getSaleProducts());
         }
-        return ResponseEntity.ok(productService.getAllProducts());
+        return ResponseEntity.ok(catalogCacheService.getCatalog());
+    }
+
+    // Fetch catalog filter bounds
+    @GetMapping("/filters/meta")
+    public ResponseEntity<?> getFilterMetadata() {
+        return ResponseEntity.ok(catalogCacheService.getFilterMetadata());
+    }
+
+    // Fetch a single product by its database ID (internal use only)
+    @GetMapping("/by-id/{id}")
+    public ResponseEntity<?> getProductById(@PathVariable Long id) {
+        try {
+            Product product = productService.getProductById(id);
+            return ResponseEntity.ok(product);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // 2. Fetch a single product by its SEO slug
-    @GetMapping("/{slug}")
+    @GetMapping("/slug/{slug}")
     public ResponseEntity<?> getProductBySlug(@PathVariable String slug) {
         try {
             Product product = productService.getProductBySlug(slug);

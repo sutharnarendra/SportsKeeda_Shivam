@@ -15,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.yatrax.service.MediaUplaodService;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/media")
 public class MediaController {

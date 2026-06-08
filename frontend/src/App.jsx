@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Loader from './components/ui/Loader';
@@ -28,44 +29,56 @@ function ScrollToTop() {
   return null;
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 function App() {
   const [loading, setLoading] = useState(true);
 
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      {loading ? (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ScrollToTop />
+        {loading ? (
+          <Loader onComplete={() => setLoading(false)} />
+        ) : (
+          <>
+            <Header />
 
-        <Loader onComplete={() => setLoading(false)} />
-      ) : (
-        <>
-          <Header />
+            {/* Global persistent 3D animation background */}
+            <div className="scene-fixed-bg">
+              <Suspense fallback={null}>
+                <Scene />
+              </Suspense>
+            </div>
 
-          {/* Global persistent 3D animation background */}
-          <div className="scene-fixed-bg">
-            <Suspense fallback={null}>
-              <Scene />
-            </Suspense>
-          </div>
-
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/order-history" element={<OrderHistory />} />
-            <Route path="/wishlist" element={<Wishlist />} />
-            <Route path='/faq' element={<FAQ />} />
-            <Route path='/policy' element={<Policy />} />
-          </Routes>
-          <Footer />
-          <Analytics />
-        </>
-      )}
-    </BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/shop" element={<Shop />} />
+              <Route path="/product/:slug" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/order-history" element={<OrderHistory />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path='/faq' element={<FAQ />} />
+              <Route path='/policy' element={<Policy />} />
+            </Routes>
+            <Footer />
+            <Analytics />
+          </>
+        )}
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

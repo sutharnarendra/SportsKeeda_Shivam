@@ -30,7 +30,7 @@ public class SecurityConfig {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,https://sportskeeda-frontend-shivam.pages.dev,https://api.yatrax.in}")
     private List<String> allowedOrigins;
 
     @Autowired

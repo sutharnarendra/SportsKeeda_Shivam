@@ -21,7 +21,6 @@ import com.yatrax.repository.UserRepository;
 import com.yatrax.security.UserDetailsImpl;
 import com.yatrax.service.ReviewService;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 public class ReviewController {
 

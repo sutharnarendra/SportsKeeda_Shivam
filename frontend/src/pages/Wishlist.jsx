@@ -97,7 +97,7 @@ export default function Wishlist() {
                                         </div>
 
                                         <div className="wishlist-actions">
-                                            <Link to={`/product/${product.id}`} className="btn-view-details">
+                                            <Link to={`/product/${product.slug ?? product.id}`} className="btn-view-details">
                                                 View Details
                                             </Link>
                                             <button className="btn-add-to-cart-quick" onClick={(e) => handleAddToCart(e, product)}>

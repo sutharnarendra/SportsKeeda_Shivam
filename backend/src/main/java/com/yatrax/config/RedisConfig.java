@@ -1,6 +1,8 @@
 package com.yatrax.config;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,14 +54,49 @@ public class RedisConfig {
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(24)) // Cache products for 24 hours
+        // Default TTL of 10 minutes
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10)) 
                 .disableCachingNullValues()
                 .serializeKeysWith(SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(SerializationPair.fromSerializer(jsonSerializer()));
 
+        // Specific cache TTL configurations
+        Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
+        
+        cacheConfigs.put("yatra:catalog:all", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(15))
+                .disableCachingNullValues()
+                .serializeKeysWith(SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(SerializationPair.fromSerializer(jsonSerializer())));
+
+        cacheConfigs.put("yatra:catalog:material", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(15))
+                .disableCachingNullValues()
+                .serializeKeysWith(SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(SerializationPair.fromSerializer(jsonSerializer())));
+
+        cacheConfigs.put("yatra:featured:home", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(5))
+                .disableCachingNullValues()
+                .serializeKeysWith(SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(SerializationPair.fromSerializer(jsonSerializer())));
+
+        cacheConfigs.put("yatra:filters:meta", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(60)) // 60 minutes (1 hour)
+                .disableCachingNullValues()
+                .serializeKeysWith(SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(SerializationPair.fromSerializer(jsonSerializer())));
+
+        cacheConfigs.put("yatra:user:cart", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(1440)) // 1440 minutes (24 hours)
+                .disableCachingNullValues()
+                .serializeKeysWith(SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(SerializationPair.fromSerializer(jsonSerializer())));
+
         return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
+                .cacheDefaults(defaultConfig)
+                .withInitialCacheConfigurations(cacheConfigs)
                 .build();
     }
 }

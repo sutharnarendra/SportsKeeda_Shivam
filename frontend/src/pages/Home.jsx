@@ -1,14 +1,54 @@
-
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Star, ArrowRight } from 'lucide-react';
 import FeatureCards from '../components/ui/FeatureCards';
 import ProductCarousel from '../components/ui/ProductCarousel';
 import { useSceneStore } from '../store/sceneStore';
 import { useOrderStore } from '../store/orderStore';
-import api from '../utils/api';
+import { API_BASE } from '../utils/api';
 import './Home.css';
 
-// Local seed product data removed to enforce dynamic API data fetching
+// Slugify helper for fallback
+const slugify = str => {
+  if (!str) return '';
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+};
+
+// Shimmer skeleton loader for product grids
+function ProductGridSkeleton({ count = 4 }) {
+  return (
+    <div className="carousel__track" style={{ display: 'flex', gap: '20px', overflow: 'hidden', padding: '10px 0' }}>
+      {Array.from({ length: count }).map((_, idx) => (
+        <div key={idx} className="pcard shimmer" style={{ minWidth: '280px', height: '400px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px' }} />
+      ))}
+    </div>
+  );
+}
+
+// Normalise API Product objects to frontend layout structures
+const mapProduct = (p) => {
+  if (!p) return null;
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug ?? slugify(p.name), // Ensure slug is included
+    description: p.description || '',
+    price: Number(p.price),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    rating: p.rating ? Number(p.rating) : 5.0,
+    image: p.imageUrl || null,
+    video: p.videoUrl || null,
+    onSale: p.onSale,
+    category: p.category || '',
+    variants: Array.isArray(p.variants) ? p.variants.map(v => ({
+      id: v.id,
+      woodType: v.woodType,
+      price: Number(v.price),
+      originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+      swatchColor: v.swatchColor || '#8B6914'
+    })) : []
+  };
+};
 
 /**
  * HomeReviewCard — Renders an individual review in the shop page styled grid with expandable text.
@@ -17,7 +57,6 @@ function HomeReviewCard({ review }) {
   const [expanded, setExpanded] = useState(false);
   const TEXT_LIMIT = 70; // Characters limit before showing "Show more"
 
-  // Clean quotes from text if present
   const rawText = review.text.replace(/^["&ldquo;]+|["&rdquo;]+$/g, '');
   const isLong = rawText.length > TEXT_LIMIT;
 
@@ -25,7 +64,6 @@ function HomeReviewCard({ review }) {
     return '★'.repeat(count) + '☆'.repeat(5 - count);
   };
 
-  // Get initials for avatar (e.g. Vikram Malhotra -> VM)
   const getInitials = (name) => {
     if (!name) return 'U';
     const parts = name.split(' ');
@@ -69,53 +107,33 @@ export default function Home() {
   const isAssembled = useSceneStore((state) => state.isAssembled);
   const allReviews = useOrderStore((state) => state.reviews) || [];
 
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [similarProducts, setSimilarProducts] = useState([]);
+  // Fetch featured products using useQuery
+  const { data: featuredProducts = [], isLoading: loadingFeatured } = useQuery({
+    queryKey: ['products', 'featured'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/products`);
+      if (!res.ok) throw new Error('Failed to fetch featured products');
+      const data = await res.json();
+      const rawProducts = data.content ?? data.products ?? data ?? [];
+      const mapped = rawProducts.map(mapProduct).filter(Boolean);
+      return mapped.filter(p => p.category === 'Parallettes');
+    },
+    staleTime: 5 * 60 * 1000
+  });
 
-  // Fetch products dynamically from the backend DB seeder on mount
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await api.get('/api/products');
-        // Handle various response shapes: plain array, {data: [...]}, or string
-        let rawProducts = response.data;
-        if (typeof rawProducts === 'string') {
-          try { rawProducts = JSON.parse(rawProducts); } catch (_) { rawProducts = []; }
-        }
-        // Some APIs nest inside a data key
-        if (rawProducts && !Array.isArray(rawProducts) && Array.isArray(rawProducts.data)) {
-          rawProducts = rawProducts.data;
-        }
-        if (Array.isArray(rawProducts) && rawProducts.length > 0) {
-          const mappedProducts = rawProducts.map(p => ({
-            id: p.id,
-            name: p.name,
-            description: p.description || '',
-            price: Number(p.price),
-            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-            rating: p.rating ? Number(p.rating) : 5.0,
-            image: p.imageUrl || null,
-            video: p.videoUrl || null,
-            onSale: p.onSale,
-            category: p.category || '',
-            variants: Array.isArray(p.variants) ? p.variants.map(v => ({
-              id: v.id,
-              woodType: v.woodType,
-              price: Number(v.price),
-              originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
-              swatchColor: v.swatchColor || '#8B6914'
-            })) : []
-          }));
-
-          setFeaturedProducts(mappedProducts.filter(p => p.category === 'Parallettes'));
-          setSimilarProducts(mappedProducts.filter(p => p.category === 'Accessories'));
-        }
-      } catch (err) {
-        console.error("Failed to fetch products from backend database", err);
-      }
-    };
-    fetchProducts();
-  }, []);
+  // Fetch suggested products using useQuery
+  const { data: suggestedProducts = [], isLoading: loadingSuggested } = useQuery({
+    queryKey: ['products', 'suggested'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/products`);
+      if (!res.ok) throw new Error('Failed to fetch suggested products');
+      const data = await res.json();
+      const rawProducts = data.content ?? data.products ?? data ?? [];
+      const mapped = rawProducts.map(mapProduct).filter(Boolean);
+      return mapped.filter(p => p.category === 'Accessories');
+    },
+    staleTime: 5 * 60 * 1000
+  });
 
   const topReviews = useMemo(() => {
     const reviewsArray = Array.isArray(allReviews) ? allReviews : [];
@@ -141,12 +159,9 @@ export default function Home() {
       {/* ═══ SCROLLABLE CONTENT — Floats over the 3D background ═══ */}
       <div className="scroll-content">
 
-
-        {/* ═══ HERO SECTION — First viewport with tagline over 3D ═══ */}
+        {/* ═══ HERO SECTION ═══ */}
         <section className="hero-section" id="hero-section">
-          {/* Central product frame containing unified tagline and CTA buttons */}
           <div className="hero-product-frame">
-            {/* Tagline Content inside the same glass plane */}
             <div className={`hero-content ${showFeatureCards ? 'visible' : ''}`}>
               <h1 className="hero-title">
                 Crafted for <span className="highlight">Performance</span>
@@ -165,7 +180,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Feature cards floating around */}
           <FeatureCards visible={showFeatureCards} />
         </section>
 
@@ -200,22 +214,36 @@ export default function Home() {
 
         {/* ═══ FEATURED COLLECTION — Horizontal Scroll ═══ */}
         <section className="featured-section section" id="featured-section">
-          <ProductCarousel
-            id="featured-carousel"
-            title="Featured Collection"
-            subtitle="Our best-selling parallettes — crafted with precision and care."
-            products={featuredProducts}
-          />
+          {loadingFeatured ? (
+            <div className="container" style={{ padding: '20px' }}>
+              <h2 className="carousel__title">Featured Collection</h2>
+              <ProductGridSkeleton count={4} />
+            </div>
+          ) : (
+            <ProductCarousel
+              id="featured-carousel"
+              title="Featured Collection"
+              subtitle="Our best-selling parallettes — crafted with precision and care."
+              products={featuredProducts}
+            />
+          )}
         </section>
 
         {/* ═══ SIMILAR PRODUCTS — Horizontal Scroll ═══ */}
         <section className="similar-section section" id="similar-section">
-          <ProductCarousel
-            id="similar-carousel"
-            title="You May Also Like"
-            subtitle="Explore our range of premium wooden fitness accessories."
-            products={similarProducts}
-          />
+          {loadingSuggested ? (
+            <div className="container" style={{ padding: '20px' }}>
+              <h2 className="carousel__title">You May Also Like</h2>
+              <ProductGridSkeleton count={4} />
+            </div>
+          ) : (
+            <ProductCarousel
+              id="similar-carousel"
+              title="You May Also Like"
+              subtitle="Explore our range of premium wooden fitness accessories."
+              products={suggestedProducts}
+            />
+          )}
         </section>
 
         {/* ═══ REVIEWS SECTION ═══ */}
@@ -244,7 +272,7 @@ export default function Home() {
             Shop the Collection <ArrowRight size={16} />
           </a>
         </section>
-      </div>{/* end scroll-content */}
+      </div>
     </main>
   );
 }

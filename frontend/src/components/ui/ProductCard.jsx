@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { API_BASE } from '../../utils/api';
 import { Star, Play } from 'lucide-react';
 import './ProductCard.css';
 
@@ -14,6 +16,7 @@ export default function ProductCard({ product }) {
   const [tapped, setTapped] = useState(false);
   const videoRef = useRef(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const currentVariant = product.variants?.[selectedVariant] || {};
   const currentPrice = currentVariant.price || product.price;
@@ -51,7 +54,8 @@ export default function ProductCard({ product }) {
       }
       return;
     }
-    navigate(`/product/${product.id}`);
+    // TODO: Ensure API always returns slug, use id as safe fallback for now
+    navigate(`/product/${product.slug ?? product.id}`);
   };
 
   const handleVariantClick = (e, idx) => {
@@ -63,7 +67,19 @@ export default function ProductCard({ product }) {
     <div
       className={`pcard ${isHovered ? 'pcard--hovered' : ''}`}
       id={`pcard-${product.id}`}
-      onMouseEnter={handleMouseEnter}
+      onMouseEnter={() => {
+        handleMouseEnter();
+        const slugValue = product.slug ?? product.id;
+        if (slugValue) {
+          queryClient.prefetchQuery({
+            queryKey: ['product', String(slugValue)],
+            queryFn: () =>
+              fetch(`${API_BASE}/api/products/slug/${slugValue}`)
+                .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); }),
+            staleTime: 10 * 60 * 1000
+          });
+        }
+      }}
       onMouseLeave={handleMouseLeave}
       onClick={handleCardClick}
       style={{ cursor: 'pointer' }}

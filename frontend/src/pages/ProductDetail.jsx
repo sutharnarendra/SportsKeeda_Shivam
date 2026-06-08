@@ -1,5 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { API_BASE } from '../utils/api';
 import { Star, Heart, ShoppingBag, Truck, RefreshCw, Shield, AlertTriangle, ArrowLeft, UploadCloud, Trash2, FileImage, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import { useCartStore } from '../store/cartStore';
@@ -7,6 +9,76 @@ import { useWishlistStore } from '../store/wishlistStore';
 import { useOrderStore } from '../store/orderStore';
 import ProductCarousel from '../components/ui/ProductCarousel';
 import './ProductDetail.css';
+
+// Simple ErrorBoundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="product-detail-page" style={{ padding: '80px 20px', textAlign: 'center' }}>
+          <h2>Something went wrong loading this product.</h2>
+          <p style={{ margin: '20px 0' }}>There was an unexpected application rendering error.</p>
+          <a href="/shop" className="btn btn-primary" style={{ display: 'inline-flex', padding: '0.8rem 2rem', borderRadius: '50px' }}>
+            Return to shop
+          </a>
+        </main>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ProductDetailSkeleton Component
+function ProductDetailSkeleton() {
+  return (
+    <main className="product-detail-page skeleton">
+      <div className="detail-container">
+        <div className="detail-breadcrumbs shimmer" style={{ height: '20px', width: '250px', marginBottom: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+        <div className="detail-layout">
+          <div className="detail-gallery shimmer" style={{ minHeight: '450px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }} />
+          <div className="detail-panel">
+            <div className="shimmer" style={{ height: '45px', width: '70%', marginBottom: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+            <div className="shimmer" style={{ height: '20px', width: '30%', marginBottom: '25px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+            <div className="shimmer" style={{ height: '120px', width: '100%', marginBottom: '25px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+            <div className="shimmer" style={{ height: '50px', width: '45%', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+// Normalise API Product objects to frontend layout structures
+const mapProduct = (p) => {
+  if (!p) return null;
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.description || '',
+    price: Number(p.price),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    rating: p.rating ? Number(p.rating) : 5.0,
+    image: p.imageUrl || null,
+    video: p.videoUrl || null,
+    onSale: p.onSale,
+    category: p.category || '',
+    variants: Array.isArray(p.variants) ? p.variants.map(v => ({
+      id: v.id,
+      woodType: v.woodType,
+      price: Number(v.price),
+      originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+      swatchColor: v.swatchColor || '#8B6914'
+    })) : []
+  };
+};
 
 /**
  * ReviewCard — Individual review with expandable "Show more" for long text
@@ -48,77 +120,13 @@ function ReviewCard({ rev }) {
   );
 }
 
-export default function ProductDetail() {
-  const { id } = useParams();
+function ProductDetail() {
+  const { slug } = useParams();
   const navigate = useNavigate();
 
   const reviews = useOrderStore((state) => state.reviews) || [];
   const fetchReviews = useOrderStore((state) => state.fetchReviews);
 
-  const [product, setProduct] = useState(null);
-  const [loadingProduct, setLoadingProduct] = useState(true);
-  const [recommendedProducts, setRecommendedProducts] = useState([]);
-
-  useEffect(() => {
-    const fetchProduct = async () => {
-      setLoadingProduct(true);
-      try {
-        const response = await api.get('/api/products');
-        // Handle various response shapes: plain array, {data: [...]}, or string
-        let rawProducts = response.data;
-        if (typeof rawProducts === 'string') {
-          try { rawProducts = JSON.parse(rawProducts); } catch (_) { rawProducts = []; }
-        }
-        if (rawProducts && !Array.isArray(rawProducts) && Array.isArray(rawProducts.data)) {
-          rawProducts = rawProducts.data;
-        }
-        if (Array.isArray(rawProducts) && rawProducts.length > 0) {
-          const mapped = rawProducts.map(p => ({
-            id: p.id,
-            name: p.name,
-            description: p.description || '',
-            price: Number(p.price),
-            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-            rating: p.rating ? Number(p.rating) : 5.0,
-            image: p.imageUrl || null,
-            video: p.videoUrl || null,
-            onSale: p.onSale,
-            category: p.category || '',
-            variants: Array.isArray(p.variants) ? p.variants.map(v => ({
-              id: v.id,
-              woodType: v.woodType,
-              price: Number(v.price),
-              originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
-              swatchColor: v.swatchColor || '#8B6914'
-            })) : []
-          }));
-
-          const matched = mapped.find(p => p.id === Number(id));
-          if (matched) {
-            setProduct(matched);
-            setRecommendedProducts(mapped.filter(p => p.id !== Number(id)));
-            setLoadingProduct(false);
-            // Fetching reviews for this product from the database
-            fetchReviews(id);
-            return;
-          }
-        }
-        // No matching product found in the database
-        setProduct(null);
-      } catch (err) {
-        console.error("Failed to load product from backend", err);
-        setProduct(null);
-      } finally {
-        setLoadingProduct(false);
-      }
-    };
-    fetchProduct();
-  }, [id, fetchReviews]);
-
-  const productReviews = useMemo(() => {
-    const reviewsArray = Array.isArray(reviews) ? reviews : [];
-    return reviewsArray.filter(r => r && r.productId === (product?.id || 0));
-  }, [reviews, product?.id]);
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [engravingText, setEngravingText] = useState('');
@@ -129,27 +137,116 @@ export default function ProductDetail() {
   const addToCart = useCartStore((state) => state.addToCart);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
 
-  if (loadingProduct) {
-    return (
-      <main className="product-detail-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-        <Loader2 className="animate-spin" size={32} style={{ color: 'var(--color-accent-gold)' }} />
-      </main>
-    );
-  }
+  // Fetch the product details by slug using React Query
+  const { data: product, isLoading, isError, error } = useQuery({
+    queryKey: ['product', slug],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/products/slug/${slug}`);
+      if (!res.ok) {
+        const err = new Error(`Product not found: ${slug}`);
+        err.status = res.status;
+        throw err;
+      }
+      const data = await res.json();
+      return mapProduct(data);
+    },
+    enabled: !!slug,
+    staleTime: 10 * 60 * 1000,
+    retry: (failureCount, err) => {
+      if (err.status === 404) return false;
+      return failureCount < 2;
+    }
+  });
 
-  if (!product) {
+  // Fetch the products catalog using React Query to supply recommended accessories
+  const { data: recommendedProducts = [] } = useQuery({
+    queryKey: ['products', 'recommended', product?.id],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/products`);
+      if (!res.ok) throw new Error('Failed to fetch recommended items');
+      const json = await res.json();
+      const rawList = json.content ?? json.products ?? json ?? [];
+      const mapped = rawList.map(mapProduct).filter(Boolean);
+      return mapped.filter(p => p.id !== product?.id);
+    },
+    enabled: !!product?.id,
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Sync / fetch reviews from database once product is loaded
+  useEffect(() => {
+    if (product?.id) {
+      fetchReviews(product.id);
+    }
+  }, [product?.id, fetchReviews]);
+
+  // SEO updates
+  useEffect(() => {
+    if (product) {
+      document.title = `${product.name} | Yatra X`;
+      let desc = document.querySelector('meta[name="description"]');
+      if (!desc) {
+        desc = document.createElement('meta');
+        desc.name = 'description';
+        document.head.appendChild(desc);
+      }
+      desc.content = product.description?.slice(0, 155) ?? `${product.name} - Premium wooden fitness accessories by Yatra X`;
+      let canonical = document.querySelector('link[rel="canonical"]');
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+      }
+      canonical.href = `https://sportskeeda-frontend-shivam.pages.dev/product/${product.slug}`;
+    }
+  }, [product]);
+
+  // JSON-LD schema
+  useEffect(() => {
+    if (!product) return;
+    const existing = document.getElementById('product-jsonld');
+    if (existing) existing.remove();
+    const script = document.createElement('script');
+    script.id = 'product-jsonld';
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "description": product.description,
+      "image": product.image,
+      "sku": product.slug,
+      "offers": {
+        "@type": "Offer",
+        "price": product.price,
+        "priceCurrency": "INR",
+        "availability": product.stock > 0 
+          ? "https://schema.org/InStock" 
+          : "https://schema.org/OutOfStock",
+        "url": `https://sportskeeda-frontend-shivam.pages.dev/product/${product.slug}`
+      }
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById('product-jsonld')?.remove(); };
+  }, [product]);
+
+  const productReviews = useMemo(() => {
+    const reviewsArray = Array.isArray(reviews) ? reviews : [];
+    return reviewsArray.filter(r => r && r.productId === (product?.id || 0));
+  }, [reviews, product?.id]);
+
+  if (isLoading) return <ProductDetailSkeleton />;
+
+  if (isError || !product) {
+    if (error?.status === 404) return <Navigate to="/shop" replace />;
     return (
-      <main className="product-detail-page">
-        <div className="detail-container animate-scale-in stagger-1" style={{ textAlign: 'center', padding: '100px 0' }}>
-          <AlertTriangle size={64} style={{ color: 'var(--color-error)', marginBottom: '20px' }} />
-          <h2 className="detail-name">Product Not Found</h2>
-          <p style={{ color: 'var(--color-text-muted)', marginBottom: '30px' }}>
-            The product you are looking for does not exist or has been removed.
-          </p>
-          <Link to="/shop" className="btn btn-primary" style={{ padding: '0.8rem 2rem', borderRadius: '50px' }}>
-            <ArrowLeft size={16} style={{ marginRight: '8px' }} /> Back to Shop
-          </Link>
-        </div>
+      <main className="product-detail-page" style={{ padding: '80px 20px', textAlign: 'center' }}>
+        <AlertTriangle size={64} style={{ color: 'var(--color-error)', marginBottom: '20px' }} />
+        <h2>Something went wrong loading this product.</h2>
+        <p style={{ margin: '15px 0' }}>Error details: {error?.message || 'Product not found'}</p>
+        <Link to="/shop" className="btn btn-primary" style={{ padding: '0.8rem 2rem', borderRadius: '50px' }}>
+          <ArrowLeft size={16} style={{ marginRight: '8px' }} /> Return to Shop
+        </Link>
       </main>
     );
   }
@@ -162,11 +259,9 @@ export default function ProductDetail() {
     ? Math.round((1 - basePrice / currentOriginalPrice) * 100)
     : 0;
 
-  // Engraving Add-on Prices (Indicated by admin / config parameters)
+  // Engraving Add-on Prices
   const TEXT_ENGRAVE_COST = 299;
   const LOGO_ENGRAVE_COST = 799;
-
-
 
   const hasTextEngrave = engravingText.trim().length > 0;
   const hasLogoEngrave = !!logoFile;
@@ -192,7 +287,6 @@ export default function ProductDetail() {
   };
 
   const handleAddToCart = () => {
-    // Incorporate the engraving text and logo request if present
     const cartProduct = {
       ...product,
       engravingRequest: engravingText.trim() ? engravingText.trim() : null,
@@ -201,8 +295,6 @@ export default function ProductDetail() {
       customPricingAdded: (hasTextEngrave ? TEXT_ENGRAVE_COST : 0) + (hasLogoEngrave ? LOGO_ENGRAVE_COST : 0)
     };
     addToCart(cartProduct, selectedVariantIdx, quantity);
-
-    // Smooth scroll navigation to Cart
     navigate('/cart');
   };
 
@@ -510,5 +602,13 @@ export default function ProductDetail() {
 
       </div>
     </main>
+  );
+}
+
+export default function ProductDetailPage() {
+  return (
+    <ErrorBoundary>
+      <ProductDetail />
+    </ErrorBoundary>
   );
 }

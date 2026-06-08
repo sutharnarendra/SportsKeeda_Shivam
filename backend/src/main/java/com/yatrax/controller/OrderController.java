@@ -25,7 +25,6 @@ import com.yatrax.security.UserDetailsImpl;
 import com.yatrax.service.EmailService;
 import com.yatrax.service.OrderService;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {

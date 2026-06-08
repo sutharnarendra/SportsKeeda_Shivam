@@ -33,10 +33,10 @@ public class CartService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    private static final String CART_CACHE_PREFIX = "cart::";
+    private static final String CART_CACHE_PREFIX = "yatra:user:";
 
     private String getCacheKey(Long userId) {
-        return CART_CACHE_PREFIX + userId;
+        return CART_CACHE_PREFIX + userId + ":cart";
     }
 
     // Cache-Aside: Reads from Upstash Redis first, falls back to Neon DB
@@ -56,9 +56,9 @@ public class CartService {
         // 2. Cache Miss: Load from Neon PostgreSQL
         List<CartItem> databaseCart = cartItemRepository.findByUserId(userId);
 
-        // 3. Populate cache in Redis with 1-hour expiration
+        // 3. Populate cache in Redis with 24-hour expiration
         try {
-            redisTemplate.opsForValue().set(cacheKey, databaseCart, 1, TimeUnit.HOURS);
+            redisTemplate.opsForValue().set(cacheKey, databaseCart, 24, TimeUnit.HOURS);
         } catch (Exception e) {
             // Fail silently to keep application robus if cache fails
         }

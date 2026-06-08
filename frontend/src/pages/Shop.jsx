@@ -1,108 +1,157 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Filter, RotateCcw, AlertTriangle, ArrowUpDown } from 'lucide-react';
-import api from '../utils/api';
+import { API_BASE } from '../utils/api';
 import ProductCard from '../components/ui/ProductCard';
 import './Shop.css';
 
 const WOOD_TYPES = ['Sheesham', 'Teak', 'Mango', 'Cork', 'Birch', 'Pine', 'Walnut'];
 
+// Shimmer skeleton component
+function ProductGridSkeleton({ count = 6 }) {
+  return (
+    <div className="shop-grid" style={{ padding: '10px 0' }}>
+      {Array.from({ length: count }).map((_, idx) => (
+        <div key={idx} className="pcard shimmer" style={{ height: '420px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }} />
+      ))}
+    </div>
+  );
+}
+
+// Slugify helper
+const slugify = str => {
+  if (!str) return '';
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+};
+
+// Map backend properties to frontend
+const mapProduct = (p) => {
+  if (!p) return null;
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug ?? slugify(p.name),
+    description: p.description || '',
+    price: Number(p.price),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    rating: p.rating ? Number(p.rating) : 5.0,
+    image: p.imageUrl || null,
+    video: p.videoUrl || null,
+    onSale: p.onSale,
+    category: p.category || '',
+    variants: Array.isArray(p.variants) ? p.variants.map(v => ({
+      id: v.id,
+      woodType: v.woodType,
+      price: Number(v.price),
+      originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+      swatchColor: v.swatchColor || '#8B6914'
+    })) : []
+  };
+};
+
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamQuery = searchParams.get('search') || '';
 
-  // Filter States
-  const [products, setProducts] = useState([]);
-  const [selectedWoods, setSelectedWoods] = useState([]);
-  const [maxPrice, setMaxPrice] = useState(10000);
-  const [minRating, setMinRating] = useState(0);
-  const [sortBy, setSortBy] = useState('best'); // 'best', 'price-asc', 'price-desc', 'rating'
-  const [onlySale, setOnlySale] = useState(false);
+  // Synchronise Filter States with URLSearchParams
+  const selectedWoods = searchParams.getAll('wood');
+  const maxPrice = Number(searchParams.get('maxPrice') ?? 10000);
+  const minPrice = Number(searchParams.get('minPrice') ?? 0);
+  const sortBy = searchParams.get('sort') ?? 'best_sellers';
+  const onlySale = searchParams.get('sale') === 'true';
+  const minRating = Number(searchParams.get('rating') ?? 0);
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  // If a search query is passed in the URL, we keep it in state
   const searchQuery = searchParamQuery;
+  const filters = { selectedWoods, maxPrice, minPrice, sortBy, onlySale, minRating };
 
-  // Fetch products from backend on mount
+  // Fetch products using React Query
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['products', 'catalog', filters],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedWoods.length) selectedWoods.forEach(w => params.append('material', w));
+      if (maxPrice < 10000) params.set('maxPrice', String(maxPrice));
+      if (minPrice > 0) params.set('minPrice', String(minPrice));
+      if (sortBy !== 'best_sellers') params.set('sort', sortBy);
+      if (onlySale) params.set('sale', 'true');
+      
+      const res = await fetch(`${API_BASE}/api/products?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch catalog products');
+      const json = await res.json();
+      const rawProducts = json.content ?? json.products ?? json ?? [];
+      return rawProducts.map(mapProduct).filter(Boolean);
+    },
+    staleTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev
+  });
+
+  const products = data ?? [];
+
+  // Minimum 200ms loading skeleton display logic
+  const [showSkeleton, setShowSkeleton] = useState(false);
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await api.get('/api/products');
-        // Handle various response shapes: plain array, {data: [...]}, or string
-        let rawProducts = response.data;
-        if (typeof rawProducts === 'string') {
-          try { rawProducts = JSON.parse(rawProducts); } catch (_) { rawProducts = []; }
-        }
-        if (rawProducts && !Array.isArray(rawProducts) && Array.isArray(rawProducts.data)) {
-          rawProducts = rawProducts.data;
-        }
-        if (Array.isArray(rawProducts) && rawProducts.length > 0) {
-          const mappedProducts = rawProducts.map(p => ({
-            id: p.id,
-            name: p.name,
-            description: p.description || '',
-            price: Number(p.price),
-            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-            rating: p.rating ? Number(p.rating) : 5.0,
-            image: p.imageUrl || null,
-            video: p.videoUrl || null,
-            onSale: p.onSale,
-            category: p.category || '',
-            variants: Array.isArray(p.variants) ? p.variants.map(v => ({
-              id: v.id,
-              woodType: v.woodType,
-              price: Number(v.price),
-              originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
-              swatchColor: v.swatchColor || '#8B6914'
-            })) : []
-          }));
-          setProducts(mappedProducts);
-        }
-      } catch (err) {
-        console.error("Failed to load products from database", err);
-      }
-    };
-    fetchProducts();
-  }, []);
+    let timer;
+    if (isLoading) {
+      timer = setTimeout(() => setShowSkeleton(true), 200);
+    } else {
+      setShowSkeleton(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   // Handle URL changes to reset state or update accordingly
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [searchParamQuery]);
 
-  // Toggle Wood Type
+  // Toggle Wood Type Filter in URL
   const handleWoodToggle = (wood) => {
-    setSelectedWoods((prev) =>
-      prev.includes(wood) ? prev.filter((w) => w !== wood) : [...prev, wood]
-    );
-    setMobileFiltersOpen(false); // Close mobile drawer immediately once filter is selected!
+    const current = searchParams.getAll('wood');
+    const updated = current.includes(wood)
+      ? current.filter(w => w !== wood)
+      : [...current, wood];
+      
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('wood');
+      updated.forEach(w => next.append('wood', w));
+      return next;
+    });
+    setMobileFiltersOpen(false);
   };
 
-  // Quick select dynamic material chip
+  // Quick select dynamic material chip in URL
   const handleQuickChipSelect = (wood) => {
-    if (wood === 'all') {
-      setSelectedWoods([]);
-    } else {
-      setSelectedWoods([wood]);
-    }
-    setMobileFiltersOpen(false); // Close mobile drawer
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('wood');
+      if (wood !== 'all') {
+        next.append('wood', wood);
+      }
+      return next;
+    });
+    setMobileFiltersOpen(false);
   };
 
-  // Clear All Filters
+  // Clear All URL Filters
   const handleClearFilters = () => {
-    setSelectedWoods([]);
-    setMaxPrice(10000);
-    setMinRating(0);
-    setSortBy('best');
-    setOnlySale(false);
-    setMobileFiltersOpen(false); // Close mobile drawer
-    if (searchParamQuery) {
-      setSearchParams({});
-    }
+    setSearchParams({});
+    setMobileFiltersOpen(false);
   };
 
-  // Filter and Sort Products
+  // Check if filters are at defaults
+  const isFiltersDefault = 
+    selectedWoods.length === 0 &&
+    maxPrice === 10000 &&
+    minPrice === 0 &&
+    minRating === 0 &&
+    sortBy === 'best_sellers' &&
+    !onlySale;
+
+  // Filter and Sort Products client-side as backup and for refined sorting
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       // 1. Search Query filter
@@ -113,7 +162,7 @@ export default function Shop() {
         if (!matchesName && !matchesDesc) return false;
       }
 
-      // 2. Wood Type filter (Checks if any variants match the chosen wood types)
+      // 2. Wood Type filter
       if (selectedWoods.length > 0) {
         const productWoods = product.variants
           ? product.variants.map((v) => v.woodType)
@@ -122,11 +171,11 @@ export default function Shop() {
         if (!hasMatchingWood) return false;
       }
 
-      // 3. Price Filter (Check if base price or any variant price is below maxPrice)
+      // 3. Price Filter
       const lowestPrice = product.variants && product.variants.length > 0
         ? Math.min(...product.variants.map((v) => v.price))
         : product.price;
-      if (lowestPrice > maxPrice) return false;
+      if (lowestPrice > maxPrice || lowestPrice < minPrice) return false;
 
       // 4. Rating Filter
       if (product.rating < minRating) return false;
@@ -136,7 +185,6 @@ export default function Shop() {
 
       return true;
     }).sort((a, b) => {
-      // Sorting
       if (sortBy === 'price-asc') {
         const priceA = a.variants && a.variants.length > 0 ? Math.min(...a.variants.map((v) => v.price)) : a.price;
         const priceB = b.variants && b.variants.length > 0 ? Math.min(...b.variants.map((v) => v.price)) : b.price;
@@ -150,9 +198,9 @@ export default function Shop() {
       if (sortBy === 'rating') {
         return b.rating - a.rating;
       }
-      return 0; // 'best' / default ordering
+      return 0; // default / bestsellers
     });
-  }, [products, searchQuery, selectedWoods, maxPrice, minRating, sortBy, onlySale]);
+  }, [products, searchQuery, selectedWoods, maxPrice, minPrice, minRating, sortBy, onlySale]);
 
   return (
     <main className="shop-page">
@@ -229,9 +277,16 @@ export default function Shop() {
               <select
                 className="sort-select"
                 value={sortBy}
-                onChange={(e) => { setSortBy(e.target.value); setMobileFiltersOpen(false); }}
+                onChange={(e) => {
+                  setSearchParams(prev => {
+                    const next = new URLSearchParams(prev);
+                    next.set('sort', e.target.value);
+                    return next;
+                  });
+                  setMobileFiltersOpen(false);
+                }}
               >
-                <option value="best">Best Sellers</option>
+                <option value="best_sellers">Best Sellers</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
                 <option value="rating">Top Rated</option>
@@ -248,7 +303,14 @@ export default function Shop() {
                   max="10000"
                   step="500"
                   value={maxPrice}
-                  onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSearchParams(prev => {
+                      const next = new URLSearchParams(prev);
+                      next.set('maxPrice', val);
+                      return next;
+                    });
+                  }}
                   className="price-range-slider"
                 />
                 <div className="price-range-values">
@@ -285,7 +347,14 @@ export default function Shop() {
                       type="radio"
                       name="rating"
                       checked={minRating === rating}
-                      onChange={() => { setMinRating(rating); setMobileFiltersOpen(false); }}
+                      onChange={() => {
+                        setSearchParams(prev => {
+                          const next = new URLSearchParams(prev);
+                          next.set('rating', String(rating));
+                          return next;
+                        });
+                        setMobileFiltersOpen(false);
+                      }}
                     />
                     <span>{rating}★ & above</span>
                   </label>
@@ -295,7 +364,14 @@ export default function Shop() {
                     type="radio"
                     name="rating"
                     checked={minRating === 0}
-                    onChange={() => { setMinRating(0); setMobileFiltersOpen(false); }}
+                    onChange={() => {
+                      setSearchParams(prev => {
+                        const next = new URLSearchParams(prev);
+                        next.delete('rating');
+                        return next;
+                      });
+                      setMobileFiltersOpen(false);
+                    }}
                   />
                   <span>All Ratings</span>
                 </label>
@@ -308,7 +384,19 @@ export default function Shop() {
                 <input
                   type="checkbox"
                   checked={onlySale}
-                  onChange={(e) => { setOnlySale(e.target.checked); setMobileFiltersOpen(false); }}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    setSearchParams(prev => {
+                      const next = new URLSearchParams(prev);
+                      if (isChecked) {
+                        next.set('sale', 'true');
+                      } else {
+                        next.delete('sale');
+                      }
+                      return next;
+                    });
+                    setMobileFiltersOpen(false);
+                  }}
                 />
                 <span>Special Offers %</span>
               </label>
@@ -318,31 +406,35 @@ export default function Shop() {
             <button className="btn-clear-filters" onClick={handleClearFilters}>
               <RotateCcw size={14} /> Clear Filters
             </button>
-
-            {/* Mobile Apply Button */}
-            <button
-              type="button"
-              className="btn-apply-filters"
-              onClick={() => setMobileFiltersOpen(false)}
-              style={{ display: 'none' }}
-            >
-              Apply Filter Settings
-            </button>
           </aside>
 
           {/* Main Grid Area */}
           <section className="shop-grid-area animate-fade-up stagger-4">
             <div className="shop-results-header">
               <span className="results-count">
-                {filteredProducts.length} Product{filteredProducts.length !== 1 ? 's' : ''} found
+                {showSkeleton ? 'Loading...' : `${filteredProducts.length} Product${filteredProducts.length !== 1 ? 's' : ''} found`}
               </span>
             </div>
 
-            {filteredProducts.length > 0 ? (
+            {showSkeleton ? (
+              <ProductGridSkeleton count={6} />
+            ) : isError ? (
+              <div className="shop-empty">
+                <AlertTriangle size={48} style={{ color: 'var(--color-error)', marginBottom: '15px' }} />
+                <h3 className="shop-empty-title">Failed to load catalog</h3>
+                <p className="shop-empty-desc">An error occurred while connecting to the backend API. Please try again later.</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="shop-grid">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
+              </div>
+            ) : isFiltersDefault ? (
+              <div className="shop-empty">
+                <AlertTriangle size={48} style={{ color: 'var(--color-accent-gold)', marginBottom: '15px' }} />
+                <h3 className="shop-empty-title">Catalog is currently empty</h3>
+                <p className="shop-empty-desc">No fitness accessories could be loaded from the database catalog.</p>
               </div>
             ) : (
               <div className="shop-empty">
