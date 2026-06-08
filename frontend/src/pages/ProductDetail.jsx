@@ -14,21 +14,26 @@ import './ProductDetail.css';
 function ReviewCard({ rev }) {
   const [expanded, setExpanded] = useState(false);
   const TEXT_LIMIT = 60; // Characters before showing "Show more"
-  const isLong = rev.text.length > TEXT_LIMIT;
+  const isLong = rev && rev.text && rev.text.length > TEXT_LIMIT;
+
+  if (!rev) return null;
+
+  // Force rating to be a valid integer between 0 and 5 to prevent repeat RangeError crashes
+  const rating = Math.max(0, Math.min(5, Math.round(Number(rev.rating) || 5)));
 
   return (
     <div className="review-scroll-card animate-fade-up">
       <div className="review-card-top">
         <div>
-          <span className="review-author">{rev.author}</span>
-          <span className="review-date">{rev.date}</span>
+          <span className="review-author">{rev.author || 'Anonymous'}</span>
+          <span className="review-date">{rev.date || ''}</span>
         </div>
         <div className="review-stars">
-          {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+          {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
         </div>
       </div>
       <p className={`review-card-text ${expanded ? 'review-card-text--expanded' : ''}`}>
-        &ldquo;{rev.text}&rdquo;
+        &ldquo;{rev.text || ''}&rdquo;
       </p>
       {isLong && (
         <button
@@ -111,7 +116,8 @@ export default function ProductDetail() {
   }, [id, fetchReviews]);
 
   const productReviews = useMemo(() => {
-    return reviews.filter(r => r.productId === (product?.id || 0));
+    const reviewsArray = Array.isArray(reviews) ? reviews : [];
+    return reviewsArray.filter(r => r && r.productId === (product?.id || 0));
   }, [reviews, product?.id]);
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -274,7 +280,9 @@ export default function ProductDetail() {
             {/* Meta Row */}
             <div className="detail-meta-row">
               <div className="detail-rating">
-                <span className="detail-rating-stars">{'★'.repeat(Math.round(product.rating))}</span>
+                <span className="detail-rating-stars">
+                  {'★'.repeat(Math.max(0, Math.min(5, Math.round(Number(product.rating) || 5))))}
+                </span>
                 <span>{product.rating}</span>
               </div>
               <span style={{ opacity: 0.3 }}>|</span>

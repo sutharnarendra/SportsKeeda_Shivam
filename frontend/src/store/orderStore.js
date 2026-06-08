@@ -23,7 +23,10 @@ export const useOrderStore = create((set, get) => {
   const loadInitialReviews = () => {
     try {
       const saved = localStorage.getItem('yatra_x_reviews');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch (e) { }
     return [];
   };
@@ -171,7 +174,8 @@ export const useOrderStore = create((set, get) => {
 
         set(state => {
           //Keep reviews for other products, but update/refresh reviews for this product
-          const otherReviews = state.reviews.filter(rev => rev.productId !== parseInt(productId));
+          const reviewsArray = Array.isArray(state.reviews) ? state.reviews : [];
+          const otherReviews = reviewsArray.filter(rev => rev && rev.productId !== parseInt(productId));
           return { reviews: [...mappedReviews, ...otherReviews] };
         });
       } catch (err) {
@@ -181,7 +185,8 @@ export const useOrderStore = create((set, get) => {
 
     // Get reviews for a specific product
     getProductReviews: (productId) => {
-      return get().reviews.filter(r => r.productId === parseInt(productId));
+      const reviewsArray = Array.isArray(get().reviews) ? get().reviews : [];
+      return reviewsArray.filter(r => r && r.productId === parseInt(productId));
     }
   };
 });

@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Star, ArrowRight } from 'lucide-react';
 import FeatureCards from '../components/ui/FeatureCards';
@@ -15,7 +16,7 @@ import './Home.css';
 function HomeReviewCard({ review }) {
   const [expanded, setExpanded] = useState(false);
   const TEXT_LIMIT = 70; // Characters limit before showing "Show more"
-  
+
   // Clean quotes from text if present
   const rawText = review.text.replace(/^["&ldquo;]+|["&rdquo;]+$/g, '');
   const isLong = rawText.length > TEXT_LIMIT;
@@ -35,7 +36,7 @@ function HomeReviewCard({ review }) {
   return (
     <div className="review-card animate-fade-up">
       <div className="review-stars">{renderStars(review.rating || review.stars || 5)}</div>
-      
+
       <p className={`review-text ${expanded ? 'review-text--expanded' : ''}`}>
         &ldquo;{rawText}&rdquo;
       </p>
@@ -117,7 +118,8 @@ export default function Home() {
   }, []);
 
   const topReviews = useMemo(() => {
-    return [...allReviews]
+    const reviewsArray = Array.isArray(allReviews) ? allReviews : [];
+    return [...reviewsArray]
       .sort((a, b) => {
         const rA = a.rating || a.stars || 5;
         const rB = b.rating || b.stars || 5;
@@ -167,82 +169,82 @@ export default function Home() {
           <FeatureCards visible={showFeatureCards} />
         </section>
 
-      {/* ═══ WELCOME SECTION ═══ */}
-      <section className="welcome-section section" id="welcome-section">
-        <div className="container">
-          <span className="welcome-badge">Welcome to Yatra X</span>
-          <h2 className="welcome-title">
-            Where Craftsmanship Meets Calisthenics
-          </h2>
-          <p className="welcome-description">
-            Every Yatra X parallette is hand-selected, hand-shaped, and
-            hand-finished from sustainably sourced Indian hardwood. We believe
-            your equipment should be as dedicated to performance as you are.
-          </p>
-          <div className="welcome-stats">
-            <div className="welcome-stat">
-              <div className="welcome-stat-number">5,000+</div>
-              <div className="welcome-stat-label">Athletes Trust Us</div>
-            </div>
-            <div className="welcome-stat">
-              <div className="welcome-stat-number">150kg</div>
-              <div className="welcome-stat-label">Load Tested</div>
-            </div>
-            <div className="welcome-stat">
-              <div className="welcome-stat-number">100%</div>
-              <div className="welcome-stat-label">Handcrafted</div>
+        {/* ═══ WELCOME SECTION ═══ */}
+        <section className="welcome-section section" id="welcome-section">
+          <div className="container">
+            <span className="welcome-badge">Welcome to Yatra X</span>
+            <h2 className="welcome-title">
+              Where Craftsmanship Meets Calisthenics
+            </h2>
+            <p className="welcome-description">
+              Every Yatra X parallette is hand-selected, hand-shaped, and
+              hand-finished from sustainably sourced Indian hardwood. We believe
+              your equipment should be as dedicated to performance as you are.
+            </p>
+            <div className="welcome-stats">
+              <div className="welcome-stat">
+                <div className="welcome-stat-number">5,000+</div>
+                <div className="welcome-stat-label">Athletes Trust Us</div>
+              </div>
+              <div className="welcome-stat">
+                <div className="welcome-stat-number">150kg</div>
+                <div className="welcome-stat-label">Load Tested</div>
+              </div>
+              <div className="welcome-stat">
+                <div className="welcome-stat-number">100%</div>
+                <div className="welcome-stat-label">Handcrafted</div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ═══ FEATURED COLLECTION — Horizontal Scroll ═══ */}
-      <section className="featured-section section" id="featured-section">
-        <ProductCarousel
-          id="featured-carousel"
-          title="Featured Collection"
-          subtitle="Our best-selling parallettes — crafted with precision and care."
-          products={featuredProducts}
-        />
-      </section>
+        {/* ═══ FEATURED COLLECTION — Horizontal Scroll ═══ */}
+        <section className="featured-section section" id="featured-section">
+          <ProductCarousel
+            id="featured-carousel"
+            title="Featured Collection"
+            subtitle="Our best-selling parallettes — crafted with precision and care."
+            products={featuredProducts}
+          />
+        </section>
 
-      {/* ═══ SIMILAR PRODUCTS — Horizontal Scroll ═══ */}
-      <section className="similar-section section" id="similar-section">
-        <ProductCarousel
-          id="similar-carousel"
-          title="You May Also Like"
-          subtitle="Explore our range of premium wooden fitness accessories."
-          products={similarProducts}
-        />
-      </section>
+        {/* ═══ SIMILAR PRODUCTS — Horizontal Scroll ═══ */}
+        <section className="similar-section section" id="similar-section">
+          <ProductCarousel
+            id="similar-carousel"
+            title="You May Also Like"
+            subtitle="Explore our range of premium wooden fitness accessories."
+            products={similarProducts}
+          />
+        </section>
 
-      {/* ═══ REVIEWS SECTION ═══ */}
-      <section className="reviews-section section" id="reviews-section">
-        <div className="container">
-          <h2 className="section-title">What Athletes Say</h2>
-          <p className="section-subtitle">
-            Real reviews from real customers who train with Yatra X every day.
+        {/* ═══ REVIEWS SECTION ═══ */}
+        <section className="reviews-section section" id="reviews-section">
+          <div className="container">
+            <h2 className="section-title">What Athletes Say</h2>
+            <p className="section-subtitle">
+              Real reviews from real customers who train with Yatra X every day.
+            </p>
+          </div>
+          <div className="reviews-grid">
+            {topReviews.map((review, index) => (
+              <HomeReviewCard key={review.id || index} review={review} />
+            ))}
+          </div>
+        </section>
+
+        {/* ═══ DISCOUNT BANNER ═══ */}
+        <section className="discount-banner section" id="discount-section">
+          <span className="discount-badge">Limited Time Offer</span>
+          <h2 className="discount-title">15% Off Your First Order</h2>
+          <p className="discount-subtitle">
+            Use code <strong>YATRAX15</strong> at checkout. Free shipping on all orders.
           </p>
-        </div>
-        <div className="reviews-grid">
-          {topReviews.map((review, index) => (
-            <HomeReviewCard key={review.id || index} review={review} />
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ DISCOUNT BANNER ═══ */}
-      <section className="discount-banner section" id="discount-section">
-        <span className="discount-badge">Limited Time Offer</span>
-        <h2 className="discount-title">15% Off Your First Order</h2>
-        <p className="discount-subtitle">
-          Use code <strong>YATRAX15</strong> at checkout. Free shipping on all orders.
-        </p>
-        <a href="/shop" className="btn btn-gold" style={{ position: 'relative' }}>
-          Shop the Collection <ArrowRight size={16} />
-        </a>
-      </section>
-    </div>{/* end scroll-content */}
+          <a href="/shop" className="btn btn-gold" style={{ position: 'relative' }}>
+            Shop the Collection <ArrowRight size={16} />
+          </a>
+        </section>
+      </div>{/* end scroll-content */}
     </main>
   );
 }
