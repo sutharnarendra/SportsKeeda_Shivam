@@ -123,6 +123,9 @@ public class Product {
                         .originalPrice(v.getOriginalPrice())
                         .stock(v.getStock())
                         .swatchColor(v.getSwatchColor())
+                        .imageUrl(v.getImageUrl())
+                        .videoUrl(v.getVideoUrl())
+                        .modelUrl(v.getModelUrl())
                         .createdAt(v.getCreatedAt())
                         .build();
                 copyVariants.add(vCopy);

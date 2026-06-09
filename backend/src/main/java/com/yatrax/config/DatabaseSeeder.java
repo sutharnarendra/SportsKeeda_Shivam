@@ -5,7 +5,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import org.springframework.core.annotation.Order;
+
 @Component
+@Order(1)
 public class DatabaseSeeder implements CommandLineRunner {
 
     @Autowired
@@ -13,6 +16,73 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        System.out.println("=== Running database schema migration for wishlist_items ===");
+        try {
+            // 1. Add variant_id column if it doesn't exist
+            jdbcTemplate.execute("ALTER TABLE wishlist_items ADD COLUMN IF NOT EXISTS variant_id BIGINT REFERENCES product_variants(id) ON DELETE CASCADE");
+
+            // 2. Populate variant_id for any existing rows using the first variant of the product
+            jdbcTemplate.execute("UPDATE wishlist_items w " +
+                    "SET variant_id = ( " +
+                    "    SELECT pv.id " +
+                    "    FROM product_variants pv " +
+                    "    WHERE pv.product_id = w.product_id " +
+                    "    ORDER BY pv.id ASC " +
+                    "    LIMIT 1 " +
+                    ") " +
+                    "WHERE w.variant_id IS NULL");
+
+            // 3. Delete any duplicates that would violate the new unique constraint (user_id, product_id, variant_id)
+            jdbcTemplate.execute("DELETE FROM wishlist_items a " +
+                    "USING wishlist_items b " +
+                    "WHERE a.id > b.id " +
+                    "  AND a.user_id = b.user_id " +
+                    "  AND a.product_id = b.product_id " +
+                    "  AND (a.variant_id = b.variant_id OR (a.variant_id IS NULL AND b.variant_id IS NULL))");
+
+            // 4. Run PG block to drop old index and constraints and create the new unique constraint
+            jdbcTemplate.execute(
+                    "DO $$\n" +
+                    "DECLARE\n" +
+                    "    constraint_exists boolean;\n" +
+                    "BEGIN\n" +
+                    "    -- Check if the new constraint already exists\n" +
+                    "    SELECT EXISTS (\n" +
+                    "        SELECT 1 \n" +
+                    "        FROM pg_constraint \n" +
+                    "        WHERE conrelid = 'wishlist_items'::regclass \n" +
+                    "          AND conname = 'uk_wishlist_user_product_variant'\n" +
+                    "    ) INTO constraint_exists;\n" +
+                    "\n" +
+                    "    -- If the new constraint doesn't exist, we perform the migration\n" +
+                    "    IF NOT constraint_exists THEN\n" +
+                    "        -- 1. Drop old index if exists\n" +
+                    "        DROP INDEX IF EXISTS idx_wishlist_items_unique;\n" +
+                    "\n" +
+                    "        -- 2. Drop any other unique constraints on wishlist_items\n" +
+                    "        DECLARE\n" +
+                    "            r RECORD;\n" +
+                    "        BEGIN\n" +
+                    "            FOR r IN (\n" +
+                    "                SELECT conname \n" +
+                    "                FROM pg_constraint \n" +
+                    "                WHERE conrelid = 'wishlist_items'::regclass \n" +
+                    "                  AND contype = 'u'\n" +
+                    "            ) LOOP\n" +
+                    "                EXECUTE 'ALTER TABLE wishlist_items DROP CONSTRAINT ' || quote_ident(r.conname);\n" +
+                    "            END LOOP;\n" +
+                    "        END;\n" +
+                    "\n" +
+                    "        -- 3. Add the new constraint\n" +
+                    "        ALTER TABLE wishlist_items ADD CONSTRAINT uk_wishlist_user_product_variant UNIQUE (user_id, product_id, variant_id);\n" +
+                    "    END IF;\n" +
+                    "END $$;"
+            );
+            System.out.println("=== Schema migration for wishlist_items completed successfully ===");
+        } catch (Exception e) {
+            System.err.println("=== Schema migration for wishlist_items failed: " + e.getMessage() + " ===");
+        }
+
         System.out.println("=== Seeding default Yatra X products & variants ===");
 
         // Seed / Update Products
@@ -47,35 +117,38 @@ public class DatabaseSeeder implements CommandLineRunner {
         jdbcTemplate.execute("SELECT setval('products_id_seq', 200)");
 
         // Seed Product Variants
-        jdbcTemplate.execute("INSERT INTO product_variants (product_id, wood_type, price, original_price, stock, swatch_color) VALUES " +
-                "(1, 'Sheesham', 3499.00, 4199.00, 50, '#5C3D2E'), " +
-                "(1, 'Teak', 4299.00, 4999.00, 50, '#8B6914'), " +
-                "(1, 'Mango', 2999.00, 3599.00, 50, '#C4A882'), " +
-                "(2, 'Mango', 2799.00, 3299.00, 50, '#C4A882'), " +
-                "(2, 'Sheesham', 3299.00, 3899.00, 50, '#5C3D2E'), " +
-                "(3, 'Teak', 4999.00, 5999.00, 50, '#8B6914'), " +
-                "(3, 'Walnut', 5499.00, 6499.00, 50, '#3E2723'), " +
-                "(4, 'Mango', 1999.00, null, 50, '#C4A882'), " +
-                "(4, 'Pine', 1699.00, null, 50, '#DEC099'), " +
-                "(5, 'Sheesham', 3999.00, 4499.00, 50, '#5C3D2E'), " +
-                "(5, 'Teak', 4799.00, 5299.00, 50, '#8B6914'), " +
-                "(6, 'Sheesham', 6499.00, 7999.00, 50, '#5C3D2E'), " +
-                "(6, 'Teak', 7999.00, 9499.00, 50, '#8B6914'), " +
-                "(6, 'Mango', 5499.00, 6999.00, 50, '#C4A882'), " +
-                "(101, 'Mango', 1499.00, 1799.00, 50, '#C4A882'), " +
-                "(101, 'Sheesham', 1899.00, 2199.00, 50, '#5C3D2E'), " +
-                "(102, 'Cork', 999.00, null, 50, '#D2B48C'), " +
-                "(103, 'Sheesham', 2499.00, 2999.00, 50, '#5C3D2E'), " +
-                "(103, 'Teak', 2999.00, 3499.00, 50, '#8B6914'), " +
-                "(104, 'Birch', 2299.00, 2799.00, 50, '#F5DEB3'), " +
-                "(105, 'Sheesham', 1299.00, 1599.00, 50, '#5C3D2E'), " +
-                "(106, 'Teak', 5999.00, 6999.00, 50, '#8B6914'), " +
-                "(106, 'Sheesham', 5499.00, 6499.00, 50, '#5C3D2E') " +
+        jdbcTemplate.execute("INSERT INTO product_variants (product_id, wood_type, price, original_price, stock, swatch_color, image_url, video_url, model_url) VALUES " +
+                "(1, 'Sheesham', 3499.00, 4199.00, 50, '#5C3D2E', 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop', null, null), " +
+                "(1, 'Teak', 4299.00, 4999.00, 50, '#8B6914', 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&auto=format&fit=crop', null, null), " +
+                "(1, 'Mango', 2999.00, 3599.00, 50, '#C4A882', 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=600&auto=format&fit=crop', null, null), " +
+                "(2, 'Mango', 2799.00, 3299.00, 50, '#C4A882', null, null, null), " +
+                "(2, 'Sheesham', 3299.00, 3899.00, 50, '#5C3D2E', null, null, null), " +
+                "(3, 'Teak', 4999.00, 5999.00, 50, '#8B6914', null, null, null), " +
+                "(3, 'Walnut', 5499.00, 6499.00, 50, '#3E2723', null, null, null), " +
+                "(4, 'Mango', 1999.00, null, 50, '#C4A882', null, null, null), " +
+                "(4, 'Pine', 1699.00, null, 50, '#DEC099', null, null, null), " +
+                "(5, 'Sheesham', 3999.00, 4499.00, 50, '#5C3D2E', null, null, null), " +
+                "(5, 'Teak', 4799.00, 5299.00, 50, '#8B6914', null, null, null), " +
+                "(6, 'Sheesham', 6499.00, 7999.00, 50, '#5C3D2E', null, null, null), " +
+                "(6, 'Teak', 7999.00, 9499.00, 50, '#8B6914', null, null, null), " +
+                "(6, 'Mango', 5499.00, 6999.00, 50, '#C4A882', null, null, null), " +
+                "(101, 'Mango', 1499.00, 1799.00, 50, '#C4A882', null, null, null), " +
+                "(101, 'Sheesham', 1899.00, 2199.00, 50, '#5C3D2E', null, null, null), " +
+                "(102, 'Cork', 999.00, null, 50, '#D2B48C', null, null, null), " +
+                "(103, 'Sheesham', 2499.00, 2999.00, 50, '#5C3D2E', null, null, null), " +
+                "(103, 'Teak', 2999.00, 3499.00, 50, '#8B6914', null, null, null), " +
+                "(104, 'Birch', 2299.00, 2799.00, 50, '#F5DEB3', null, null, null), " +
+                "(105, 'Sheesham', 1299.00, 1599.00, 50, '#5C3D2E', null, null, null), " +
+                "(106, 'Teak', 5999.00, 6999.00, 50, '#8B6914', null, null, null), " +
+                "(106, 'Sheesham', 5499.00, 6499.00, 50, '#5C3D2E', null, null, null) " +
                 "ON CONFLICT (product_id, wood_type) DO UPDATE SET " +
                 "  price = EXCLUDED.price, " +
                 "  original_price = EXCLUDED.original_price, " +
                 "  stock = EXCLUDED.stock, " +
-                "  swatch_color = EXCLUDED.swatch_color");
+                "  swatch_color = EXCLUDED.swatch_color, " +
+                "  image_url = EXCLUDED.image_url, " +
+                "  video_url = EXCLUDED.video_url, " +
+                "  model_url = EXCLUDED.model_url");
 
         System.out.println("=== Database seeding/update completed successfully ===");
     }

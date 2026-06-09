@@ -56,6 +56,15 @@ public class ProductVariant {
     @Column(name = "swatch_color")
     private String swatchColor;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(name = "video_url")
+    private String videoUrl;
+
+    @Column(name = "model_url")
+    private String modelUrl;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

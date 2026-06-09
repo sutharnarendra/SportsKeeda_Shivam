@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE } from '../utils/api';
-import { Star, Heart, ShoppingBag, Truck, RefreshCw, Shield, AlertTriangle, ArrowLeft, UploadCloud, Trash2, FileImage, Loader2 } from 'lucide-react';
+import { Star, Heart, ShoppingBag, Truck, RefreshCw, Shield, AlertTriangle, ArrowLeft, UploadCloud, Trash2, FileImage, Loader2, Image, Play, Box } from 'lucide-react';
 import api from '../utils/api';
 import { useCartStore } from '../store/cartStore';
 import { useWishlistStore } from '../store/wishlistStore';
 import { useOrderStore } from '../store/orderStore';
 import ProductCarousel from '../components/ui/ProductCarousel';
+const Scene = React.lazy(() => import('../components/three/Scene'));
 import './ProductDetail.css';
 
 // Simple ErrorBoundary Component
@@ -66,8 +67,9 @@ const mapProduct = (p) => {
     price: Number(p.price),
     originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
     rating: p.rating ? Number(p.rating) : 5.0,
-    image: p.imageUrl || null,
-    video: p.videoUrl || null,
+    image: p.imageUrl || p.image_url || null,
+    video: p.videoUrl || p.video_url || null,
+    model: p.modelUrl || p.model_url || null,
     onSale: p.onSale,
     category: p.category || '',
     variants: Array.isArray(p.variants) ? p.variants.map(v => ({
@@ -75,7 +77,10 @@ const mapProduct = (p) => {
       woodType: v.woodType,
       price: Number(v.price),
       originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
-      swatchColor: v.swatchColor || '#8B6914'
+      swatchColor: v.swatchColor || '#8B6914',
+      image: v.imageUrl || v.image_url || null,
+      video: v.videoUrl || v.video_url || null,
+      model: v.modelUrl || v.model_url || null
     })) : []
   };
 };
@@ -123,6 +128,7 @@ function ReviewCard({ rev }) {
 function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const reviews = useOrderStore((state) => state.reviews) || [];
   const fetchReviews = useOrderStore((state) => state.fetchReviews);
@@ -172,6 +178,17 @@ function ProductDetail() {
     enabled: !!product?.id,
     staleTime: 5 * 60 * 1000
   });
+
+  // Preselect variant from query parameters (e.g. when navigated from Wishlist)
+  useEffect(() => {
+    const variantId = searchParams.get('variant');
+    if (variantId && product?.variants) {
+      const idx = product.variants.findIndex(v => String(v.id) === String(variantId));
+      if (idx >= 0) {
+        setSelectedVariantIdx(idx);
+      }
+    }
+  }, [searchParams, product]);
 
   // Sync / fetch reviews from database once product is loaded
   useEffect(() => {
@@ -251,13 +268,17 @@ function ProductDetail() {
     );
   }
 
-  const isFavorited = isInWishlist(product.id);
   const currentVariant = product.variants?.[selectedVariantIdx] || {};
+  const isFavorited = isInWishlist(product.id, currentVariant.id);
   const basePrice = currentVariant.price || product.price;
   const currentOriginalPrice = currentVariant.originalPrice || product.originalPrice;
   const discount = currentOriginalPrice
     ? Math.round((1 - basePrice / currentOriginalPrice) * 100)
     : 0;
+
+  const activeImage = currentVariant.image || product.image;
+  const activeVideo = currentVariant.video || product.video;
+  const activeModel = currentVariant.model || product.model;
 
   // Engraving Add-on Prices
   const TEXT_ENGRAVE_COST = 299;
@@ -322,18 +343,28 @@ function ProductDetail() {
               )}
 
               {/* Render Media switcher based on state */}
-              {mediaTab === 'video' && product.video ? (
+              {mediaTab === '3d' && (product.category === 'Parallettes' || activeModel) ? (
+                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <React.Suspense fallback={
+                    <div style={{ color: 'var(--color-wood-dark)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                      Loading 3D Scene...
+                    </div>
+                  }>
+                    <Scene onAssemblyComplete={() => {}} />
+                  </React.Suspense>
+                </div>
+              ) : mediaTab === 'video' && activeVideo ? (
                 <video
-                  src={product.video}
+                  src={activeVideo}
                   className="gallery-main-video"
                   autoPlay
                   controls
                   loop
                   muted
                 />
-              ) : product.image ? (
+              ) : activeImage ? (
                 <img
-                  src={product.image}
+                  src={activeImage}
                   alt={product.name}
                   className="gallery-main-image"
                 />
@@ -347,20 +378,57 @@ function ProductDetail() {
             </div>
 
             {/* Media Tabs Switched Buttons */}
-            {product.video && (
-              <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="media-tabs-container">
+              {activeImage && (
                 <button
-                  className={`detail-variant-pill ${mediaTab === 'image' ? 'detail-variant-pill--active' : ''}`}
+                  className={`media-tab-btn ${mediaTab === 'image' ? 'media-tab-btn--active' : ''}`}
                   onClick={() => setMediaTab('image')}
                 >
-                  Product Image
+                  <Image size={16} />
+                  <span className="tab-text">Image</span>
                 </button>
+              )}
+              {activeVideo && (
                 <button
-                  className={`detail-variant-pill ${mediaTab === 'video' ? 'detail-variant-pill--active' : ''}`}
+                  className={`media-tab-btn ${mediaTab === 'video' ? 'media-tab-btn--active' : ''}`}
                   onClick={() => setMediaTab('video')}
                 >
-                  Watch Demo Video
+                  <Play size={16} />
+                  <span className="tab-text">Video</span>
                 </button>
+              )}
+              {(product.category === 'Parallettes' || activeModel) && (
+                <button
+                  className={`media-tab-btn ${mediaTab === '3d' ? 'media-tab-btn--active' : ''}`}
+                  onClick={() => setMediaTab('3d')}
+                >
+                  <Box size={16} />
+                  <span className="tab-text">3D View</span>
+                </button>
+              )}
+            </div>
+
+            {/* Mobile Only Variant Selection */}
+            {product.variants && product.variants.length > 0 && (
+              <div className="detail-variants-section mobile-only" style={{ marginTop: '18px' }}>
+                <span className="section-label" style={{ fontSize: '11px', marginBottom: '8px' }}>
+                  Select Material (Live Image Swap)
+                </span>
+                <div className="detail-variants-grid">
+                  {product.variants.map((v, idx) => (
+                    <button
+                      key={v.woodType}
+                      className={`detail-variant-pill ${selectedVariantIdx === idx ? 'detail-variant-pill--active' : ''}`}
+                      onClick={() => setSelectedVariantIdx(idx)}
+                    >
+                      <span
+                        className="variant-color-dot"
+                        style={{ background: v.swatchColor }}
+                      />
+                      {v.woodType}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -386,7 +454,7 @@ function ProductDetail() {
 
             {/* Wood variant picker */}
             {product.variants && product.variants.length > 0 && (
-              <div className="detail-variants-section">
+              <div className="detail-variants-section desktop-only">
                 <span className="section-label">Select Wood Type Variant</span>
                 <div className="detail-variants-grid">
                   {product.variants.map((v, idx) => (
@@ -510,7 +578,7 @@ function ProductDetail() {
 
                 <button
                   className={`btn-wishlist ${isFavorited ? 'btn-wishlist--active' : ''}`}
-                  onClick={() => toggleWishlist(product)}
+                  onClick={() => toggleWishlist(product, currentVariant.id)}
                   aria-label="Add to wishlist"
                 >
                   <Heart size={20} fill={isFavorited ? 'currentColor' : 'none'} />

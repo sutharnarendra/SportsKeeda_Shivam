@@ -154,10 +154,10 @@ export default function Home() {
       return () => clearTimeout(timeout);
     }
 
-    // 2. Safety fallback: Force show the hero copy after 1.5 seconds regardless of 3D state
+    // 2. Safety fallback: Force show the hero copy after 100 milliseconds regardless of 3D state
     const fallbackTimeout = setTimeout(() => {
       setShowFeatureCards(true);
-    }, 1500);
+    }, 100);
 
     return () => clearTimeout(fallbackTimeout);
   }, [isAssembled]);

@@ -98,6 +98,9 @@ CREATE TABLE product_variants (
     original_price  DECIMAL(10,2),
     stock           INTEGER         NOT NULL DEFAULT 0,
     swatch_color    VARCHAR(7),
+    image_url       VARCHAR(500),
+    video_url       VARCHAR(500),
+    model_url       VARCHAR(500),
     created_at      TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
@@ -240,14 +243,15 @@ CREATE TABLE wishlist_items (
     id              BIGSERIAL       PRIMARY KEY,
     user_id         BIGINT          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     product_id      BIGINT          NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    variant_id      BIGINT          REFERENCES product_variants(id) ON DELETE CASCADE,
     created_at      TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
 -- Get all wishlist items for a user (Wishlist page)
 CREATE INDEX idx_wishlist_items_user_id ON wishlist_items (user_id);
 
--- Prevent duplicate wishlist entries
-CREATE UNIQUE INDEX idx_wishlist_items_unique ON wishlist_items (user_id, product_id);
+-- Prevent duplicate wishlist entries for the same variant
+CREATE UNIQUE INDEX uk_wishlist_user_product_variant ON wishlist_items (user_id, product_id, variant_id);
 
 
 -- =========================================================================

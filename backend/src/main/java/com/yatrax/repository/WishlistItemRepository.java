@@ -20,6 +20,12 @@ public interface WishlistItemRepository extends JpaRepository<WishlistItem, Long
     // Check if the user already has this product in their wishlist
     boolean existsByUserIdAndProductId(Long userId, Long productId);
 
+    // Check if the user already has this product variant in their wishlist
+    boolean existsByUserIdAndProductIdAndProductVariantId(Long userId, Long productId, Long productVariantId);
+
+    // Retrieve a specific user's wishlist item for a given product and variant
+    Optional<WishlistItem> findByUserIdAndProductIdAndProductVariantId(Long userId, Long productId, Long productVariantId);
+
     // Clear the entire wishlist for a user (typically used for testing or reset)
     void deleteByUserId(Long userId);
 }

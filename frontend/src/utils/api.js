@@ -14,8 +14,8 @@ const getApiBase = () => {
     return envUrl;
   }
   
-  console.warn('[Yatra X] VITE_API_URL is not set. Falling back to https://api.yatrax.in');
-  return 'https://api.yatrax.in';
+  // Default to relative path in production so Cloudflare Pages Function proxies it
+  return '';
 };
 
 export const API_BASE = getApiBase();

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, ContactShadows, OrbitControls } from '@react-three/drei';
 import { useLocation } from 'react-router-dom';
@@ -27,7 +27,7 @@ export default function Scene({ onAssemblyComplete }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const ASSEMBLY_DURATION = 3000; // 3 seconds creation journey
+  const ASSEMBLY_DURATION = 9000; // 9 seconds creation journey
 
   const animate = useCallback((timestamp) => {
     if (!startTimeRef.current) startTimeRef.current = timestamp;
@@ -107,7 +107,6 @@ export default function Scene({ onAssemblyComplete }) {
       gl={{
         antialias: true,
         alpha: true,
-        powerPreference: 'high-performance',
       }}
     >
       {/* Ambient light for base illumination */}
@@ -142,24 +141,26 @@ export default function Scene({ onAssemblyComplete }) {
         color="#D4A574"
       />
 
-      {/* The parallettes model */}
-      <Parallettes
-        assemblyProgress={assemblyProgress}
-        isAssembled={isAssembled}
-      />
+      <Suspense fallback={null}>
+        {/* The parallettes model */}
+        <Parallettes
+          assemblyProgress={assemblyProgress}
+          isAssembled={isAssembled}
+        />
 
-      {/* Contact shadows on the ground */}
-      <ContactShadows
-        position={[0, -0.3, 0]}
-        opacity={0.25}
-        scale={8}
-        blur={2.5}
-        far={4}
-        color="#5C3D2E"
-      />
+        {/* Contact shadows on the ground */}
+        <ContactShadows
+          position={[0, -0.3, 0]}
+          opacity={0.25}
+          scale={8}
+          blur={2.5}
+          far={4}
+          color="#5C3D2E"
+        />
 
-      {/* Environment lighting (studio preset) */}
-      <Environment preset="studio" />
+        {/* Environment lighting (studio preset) */}
+        <Environment preset="studio" />
+      </Suspense>
 
       {/* Orbit controls — only after assembly */}
       {isAssembled && (

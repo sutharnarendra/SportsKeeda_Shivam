@@ -15,10 +15,12 @@ export default function Wishlist() {
         loadWishlist();
     }, [loadWishlist, isAuthenticated]);
 
-    const handleAddToCart = (e, product) => {
+    const handleAddToCart = (e, item) => {
         e.stopPropagation();
-        //Default to the first variant (Teak/Sheesham/etc.) if variants exist
-        addToCart(product, 0, 1);
+        // Find index of the saved variant in product variants list
+        const variantIndex = item.product.variants?.findIndex(v => v.id === item.variant?.id);
+        const indexToUse = variantIndex >= 0 ? variantIndex : 0;
+        addToCart(item.product, indexToUse, 1);
     };
 
     return (
@@ -58,16 +60,18 @@ export default function Wishlist() {
                     <div className="wishlist-grid animate-fade-up stagger-3">
                         {items.map((item) => {
                             const product = item.product;
-                            const basePrice = product.variants?.[0]?.price || product.price;
-                            const originalPrice = product.variants?.[0]?.originalPrice || product.originalPrice;
+                            const variant = item.variant;
+                            const basePrice = variant?.price || product.variants?.[0]?.price || product.price;
+                            const originalPrice = variant?.originalPrice || product.variants?.[0]?.originalPrice || product.originalPrice;
                             const discount = originalPrice ? Math.round((1 - basePrice / originalPrice) * 100) : 0;
+                            const displayImage = variant?.image || product.variants?.[0]?.image || product.image;
 
                             return (
                                 <div key={item.id} className="wishlist-card">
                                     {/* Media area */}
                                     <div className="wishlist-card-media">
-                                        {product.image ? (
-                                            <img src={product.image} alt={product.name} className="wishlist-card-img" />
+                                        {displayImage ? (
+                                            <img src={displayImage} alt={product.name} className="wishlist-card-img" />
                                         ) : (
                                             <div className="wishlist-card-fallback" />
                                         )}
@@ -76,7 +80,7 @@ export default function Wishlist() {
                                         {/* Floating delete button */}
                                         <button
                                             className="btn-remove-item"
-                                            onClick={() => toggleWishlist(product)}
+                                            onClick={() => toggleWishlist(product, variant?.id)}
                                             title="Remove from wishlist"
                                             aria-label="Remove"
                                         >
@@ -87,6 +91,21 @@ export default function Wishlist() {
                                     {/* Info details */}
                                     <div className="wishlist-card-info">
                                         <h3 className="wishlist-item-name">{product.name}</h3>
+                                        {variant && (
+                                            <div className="wishlist-variant-info" style={{ marginBottom: '8px' }}>
+                                                <span className="wishlist-item-variant-tag" style={{
+                                                    display: 'inline-block',
+                                                    fontSize: '0.75rem',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '12px',
+                                                    backgroundColor: 'rgba(139, 105, 20, 0.1)',
+                                                    color: 'var(--color-wood-dark)',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    Wood: {variant.woodType}
+                                                </span>
+                                            </div>
+                                        )}
                                         <p className="wishlist-item-desc">{product.description}</p>
 
                                         <div className="wishlist-price-row">
@@ -97,10 +116,10 @@ export default function Wishlist() {
                                         </div>
 
                                         <div className="wishlist-actions">
-                                            <Link to={`/product/${product.slug ?? product.id}`} className="btn-view-details">
+                                            <Link to={`/product/${product.slug ?? product.id}?variant=${variant?.id || ''}`} className="btn-view-details">
                                                 View Details
                                             </Link>
-                                            <button className="btn-add-to-cart-quick" onClick={(e) => handleAddToCart(e, product)}>
+                                            <button className="btn-add-to-cart-quick" onClick={(e) => handleAddToCart(e, item)}>
                                                 <ShoppingCart size={15} style={{ marginRight: '6px' }} /> Add
                                             </button>
                                         </div>

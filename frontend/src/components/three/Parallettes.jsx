@@ -134,10 +134,84 @@ function createProceduralWoodTexture(type = 'linear') {
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
+  texture.flipY = false;
   return texture;
 }
 
 const RUBBER_COLOR = '#111111';
+
+/**
+ * Dynamic WebGL Spark Particle Emitter for Laser Engraving
+ */
+function LaserSparks({ count = 35 }) {
+  const pointsRef = useRef();
+
+  const particles = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+    const velocities = [];
+    const lifespans = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = 0;
+      positions[i * 3 + 1] = 0.02;
+      positions[i * 3 + 2] = 0.092;
+
+      // Hemispherical ejection (upwards and outwards)
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI * 0.45;
+      const speed = 0.12 + Math.random() * 0.28;
+
+      const vx = Math.cos(theta) * Math.sin(phi) * speed;
+      const vy = Math.cos(phi) * speed + 0.08; // upward vector bias
+      const vz = Math.sin(theta) * Math.sin(phi) * speed + (Math.random() - 0.5) * 0.06;
+
+      velocities.push({ x: vx, y: vy, z: vz });
+      lifespans[i] = Math.random(); // randomized offset
+    }
+    return { positions, velocities, lifespans };
+  }, [count]);
+
+  useFrame((state, delta) => {
+    if (!pointsRef.current) return;
+    const geo = pointsRef.current.geometry;
+    const posAttr = geo.attributes.position;
+    if (!posAttr) return;
+
+    for (let i = 0; i < count; i++) {
+      particles.lifespans[i] += delta * 2.0; // speed of particle decay
+      if (particles.lifespans[i] > 1.0) {
+        particles.lifespans[i] = 0;
+        posAttr.setXYZ(i, 0, 0.02, 0.092);
+      } else {
+        const x = posAttr.getX(i) + particles.velocities[i].x * delta;
+        const y = posAttr.getY(i) + particles.velocities[i].y * delta;
+        const z = posAttr.getZ(i) + particles.velocities[i].z * delta;
+        posAttr.setXYZ(i, x, y, z);
+      }
+    }
+    posAttr.needsUpdate = true;
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[particles.positions, 3]}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        color="#FFA500"
+        size={0.035}
+        transparent
+        opacity={0.9}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        sizeAttenuation
+      />
+    </points>
+  );
+}
 
 /**
  * Sub-component to render the engraved gold slot, emblem, and active laser beam for a specific side (front/back face)
@@ -208,6 +282,9 @@ function LogoOnSide({ zSign, progress, isEngraving }) {
             distance={0.4}
             decay={2}
           />
+
+          {/* Glowing sparks */}
+          <LaserSparks />
         </group>
       )}
     </group>
@@ -636,6 +713,7 @@ export default function Parallettes({
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.flipY = false;
     return texture;
   }, []);
 

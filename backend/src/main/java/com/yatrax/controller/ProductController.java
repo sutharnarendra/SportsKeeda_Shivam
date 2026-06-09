@@ -73,6 +73,9 @@ public class ProductController {
         }
     }
 
+    @Autowired
+    private com.yatrax.config.CacheWarmer cacheWarmer;
+
     // 3. Create a new product with its variants
     @PostMapping
     public ResponseEntity<?> createProduct(@Valid @RequestBody Product product) {
@@ -83,4 +86,16 @@ public class ProductController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    // 4. Manually trigger cache eviction and warming (for direct DB updates)
+    @PostMapping("/cache/sync")
+    public ResponseEntity<String> syncCache() {
+        try {
+            cacheWarmer.warmCache(true);
+            return ResponseEntity.ok("Cache cleared and pre-warmed successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Failed to sync cache: " + e.getMessage());
+        }
+    }
 }
+

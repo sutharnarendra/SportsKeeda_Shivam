@@ -53,10 +53,12 @@ public class WishlistController {
 
     // 2. Add an item to the wishlist
     @PostMapping
-    public ResponseEntity<?> addToWishlist(@RequestParam Long productId) {
+    public ResponseEntity<?> addToWishlist(
+            @RequestParam Long productId,
+            @RequestParam(required = false) Long variantId) {
         try {
             User user = getAuthenticatedUser();
-            List<WishlistItem> updatedWishlist = wishlistService.addToWishlist(user, productId);
+            List<WishlistItem> updatedWishlist = wishlistService.addToWishlist(user, productId, variantId);
             return ResponseEntity.ok(updatedWishlist);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

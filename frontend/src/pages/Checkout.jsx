@@ -50,6 +50,13 @@ export default function Checkout() {
   const [secureToken, setSecureToken] = useState('');
   const [timeLeft, setTimeLeft] = useState(600); //10 minutes timer
 
+  // Auth guard: redirect unauthenticated users to login
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login?returnTo=/checkout');
+    }
+  }, [isAuthenticated, navigate]);
+
   const subtotal = getTotalPrice();
   const shippingCost = subtotal > 3000 ? 0 : 250;
   const gstRate = 0.18;
@@ -113,12 +120,17 @@ export default function Checkout() {
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
 
+    if (!isAuthenticated) {
+      navigate('/login?returnTo=/checkout');
+      return;
+    }
+
     // Auto-generate random unique user payment token
     const token = `SECURE-TX-${Math.floor(100000 + Math.random() * 900000)}-${Date.now().toString().substr(-4)}`;
     setSecureToken(token);
 
     // Save payment method securely if user opted in during checkout
-    if (isAuthenticated && paymentOption === 'new' && savePaymentForFuture) {
+    if (paymentOption === 'new' && savePaymentForFuture) {
       let payload = null;
       if (paymentMethod === 'upi' && upiId.trim()) {
         payload = { type: 'upi', upiId: upiId.trim() };
@@ -151,7 +163,11 @@ export default function Checkout() {
           clearCart();
         }
       } catch (err) {
-        alert(`Order placement failed: ${err.message}`);
+        if (err.message.includes('log in') || err.message.includes('logged in')) {
+          navigate('/login?returnTo=/checkout');
+        } else {
+          alert(`Order placement failed: ${err.message}`);
+        }
         setIsPaying(false);
       }
     } else {
@@ -168,7 +184,11 @@ export default function Checkout() {
           setPaymentStage(1); //Pending Order Created
         }
       } catch (err) {
-        alert(`Order placement failed: ${err.message}`);
+        if (err.message.includes('log in') || err.message.includes('logged in')) {
+          navigate('/login?returnTo=/checkout');
+        } else {
+          alert(`Order placement failed: ${err.message}`);
+        }
         setIsPaying(false);
       }
     }

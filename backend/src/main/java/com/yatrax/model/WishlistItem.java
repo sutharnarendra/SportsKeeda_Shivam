@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "wishlist_items", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "user_id", "product_id" })
+        @UniqueConstraint(columnNames = { "user_id", "product_id", "variant_id" })
 })
 @Data
 @NoArgsConstructor
@@ -45,6 +45,11 @@ public class WishlistItem {
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+    private ProductVariant productVariant;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

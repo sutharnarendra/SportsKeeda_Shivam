@@ -16,12 +16,15 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Extract returnTo destination from query params (e.g., /login?returnTo=/checkout)
+  const returnTo = new URLSearchParams(location.search).get('returnTo') || '/';
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate(returnTo);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, returnTo]);
 
   useEffect(() => {
     if (location.state?.verified) {
@@ -37,7 +40,7 @@ export default function Login() {
       if (result.twoFactorRequired) {
         setShow2fa(true);
       } else {
-        navigate("/");
+        navigate(returnTo);
       }
     }
   };
@@ -66,7 +69,7 @@ export default function Login() {
       if (result.twoFactorRequired) {
         setShow2fa(true);
       } else {
-        navigate('/');
+        navigate(returnTo);
       }
     }
   };
@@ -77,7 +80,7 @@ export default function Login() {
 
     const result = await useAuthStore.getState().verify2FA(email, totpCode.trim());
     if (result.success) {
-      navigate('/');
+      navigate(returnTo);
     }
   };
 

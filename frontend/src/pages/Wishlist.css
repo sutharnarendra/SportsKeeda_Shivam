@@ -233,9 +233,9 @@
     text-decoration: line-through;
 }
 
-.wishlist-action {
+.wishlist-actions {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
 }
 

@@ -2,10 +2,12 @@ import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag, ArrowRight, ArrowLeft, ShieldCheck, PenTool, Image } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
+import { useAuthStore } from '../store/authStore';
 import './Cart.css';
 
 export default function Cart() {
   const { items, updateQuantity, removeFromCart, getTotalPrice } = useCartStore();
+  const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   const subtotal = getTotalPrice();
@@ -17,6 +19,10 @@ export default function Cart() {
   const grandTotal = subtotal + shippingCost + gstCost;
 
   const handleCheckoutClick = () => {
+    if (!isAuthenticated) {
+      navigate('/login?returnTo=/checkout');
+      return;
+    }
     navigate('/checkout');
   };
 

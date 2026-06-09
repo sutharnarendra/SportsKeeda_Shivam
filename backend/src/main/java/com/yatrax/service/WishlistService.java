@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.yatrax.model.Product;
+import com.yatrax.model.ProductVariant;
 import com.yatrax.model.User;
 import com.yatrax.model.WishlistItem;
 import com.yatrax.repository.ProductRepository;
@@ -28,18 +29,32 @@ public class WishlistService {
     }
 
     // 2. Add an item to the wishlist with duplicate protection
-    public List<WishlistItem> addToWishlist(User user, Long productId) {
-        // Enforce duplicate check to prevent unique constraints failures
-        if (wishlistRepository.existsByUserIdAndProductId(user.getId(), productId)) {
-            throw new IllegalArgumentException("Error: Product is already in your wishlist!!");
-        }
-
+    public List<WishlistItem> addToWishlist(User user, Long productId, Long variantId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Error: Product not found!!"));
+
+        ProductVariant variant;
+        if (variantId != null) {
+            variant = product.getVariants().stream()
+                    .filter(v -> v.getId().equals(variantId))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Error: Variant not found for this product!!"));
+        } else {
+            if (product.getVariants() == null || product.getVariants().isEmpty()) {
+                throw new IllegalArgumentException("Error: Product has no variants!!");
+            }
+            variant = product.getVariants().get(0);
+        }
+
+        // Enforce duplicate check per user, product, and variant to prevent unique constraints failures
+        if (wishlistRepository.existsByUserIdAndProductIdAndProductVariantId(user.getId(), productId, variant.getId())) {
+            throw new IllegalArgumentException("Error: Product variant is already in your wishlist!!");
+        }
 
         WishlistItem item = WishlistItem.builder()
                 .user(user)
                 .product(product)
+                .productVariant(variant)
                 .build();
 
         wishlistRepository.save(item);

@@ -120,6 +120,11 @@ public class ProductService {
                     "Error: A product with slug '" + product.getSlug() + "' already exists!!");
         }
 
+        if (product.getVariants() == null || product.getVariants().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Error: A product must have at least one variant to be created!!");
+        }
+
         // Establish the bi-directional JPA relationship for parent-child save
         if (product.getVariants() != null) {
             for (ProductVariant variant : product.getVariants()) {
