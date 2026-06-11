@@ -5,6 +5,34 @@ import { API_BASE } from '../../utils/api';
 import { Star, Play } from 'lucide-react';
 import './ProductCard.css';
 
+const mapProduct = (p) => {
+  if (!p) return null;
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.description || '',
+    price: Number(p.price),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    rating: p.rating ? Number(p.rating) : 5.0,
+    image: p.imageUrl || p.image_url || null,
+    video: p.videoUrl || p.video_url || null,
+    model: p.modelUrl || p.model_url || null,
+    onSale: p.onSale,
+    category: p.category || '',
+    variants: Array.isArray(p.variants) ? p.variants.map(v => ({
+      id: v.id,
+      woodType: v.woodType,
+      price: Number(v.price),
+      originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+      swatchColor: v.swatchColor || '#8B6914',
+      image: v.imageUrl || v.image_url || null,
+      video: v.videoUrl || v.video_url || null,
+      model: v.modelUrl || v.model_url || null
+    })) : []
+  };
+};
+
 /**
  * ProductCard — Premium product display card
  * Shows main image, plays video on hover, displays price variants by wood type,
@@ -73,9 +101,12 @@ export default function ProductCard({ product }) {
         if (slugValue) {
           queryClient.prefetchQuery({
             queryKey: ['product', String(slugValue)],
-            queryFn: () =>
-              fetch(`${API_BASE}/api/products/slug/${slugValue}`)
-                .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); }),
+            queryFn: async () => {
+              const res = await fetch(`${API_BASE}/api/products/slug/${slugValue}`);
+              if (!res.ok) throw new Error('Not found');
+              const data = await res.json();
+              return mapProduct(data);
+            },
             staleTime: 10 * 60 * 1000
           });
         }
