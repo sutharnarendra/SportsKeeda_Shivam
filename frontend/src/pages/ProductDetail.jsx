@@ -319,6 +319,16 @@ function ProductDetail() {
     navigate('/cart');
   };
 
+  console.warn('[Yatra X Debug] Product Details Media State:', {
+    product,
+    selectedVariantIdx,
+    currentVariant,
+    activeImage,
+    activeVideo,
+    activeModel,
+    mediaTab
+  });
+
   return (
     <main className="product-detail-page">
       <div className="detail-container">
