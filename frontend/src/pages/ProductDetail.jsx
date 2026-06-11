@@ -319,10 +319,15 @@ function ProductDetail() {
     navigate('/cart');
   };
 
-  console.warn('[Yatra X Debug] Product Details Media State:', {
-    product,
-    selectedVariantIdx,
-    currentVariant,
+  console.warn('[Yatra X Debug] Detailed Media Fields:', {
+    productKeys: Object.keys(product || {}),
+    variantKeys: Object.keys(currentVariant || {}),
+    productImage: product?.image,
+    productImageUrl: product?.imageUrl,
+    productImageUrlSnake: product?.image_url,
+    variantImage: currentVariant?.image,
+    variantImageUrl: currentVariant?.imageUrl,
+    variantImageUrlSnake: currentVariant?.image_url,
     activeImage,
     activeVideo,
     activeModel,
