@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +59,7 @@ public class OrderService {
     }
 
     // 3. Checkout transactions: converts cart items into a persisted Order
+    // (Stock-Free + Anti-Abuse Checks)
     public Order checkout(User user, String shippingName, String shippingPhone, String shippingAddress,
             String shippingCity, String shippingState, String shippingPincode, String paymentMethod) {
         // Fetch user's current shopping cart
@@ -66,10 +68,44 @@ public class OrderService {
             throw new IllegalArgumentException("Error: Cannot checkout an empty shopping cart!!");
         }
 
+        // A. CAPPING CHECKS: Max 50 items total, and max 50 for any single item
+        int totalQuantity = 0;
+        for (CartItem cartItem : cartItems) {
+            int q = cartItem.getQuantity();
+            if (q > 50) {
+                throw new IllegalArgumentException(
+                        "Error: Cannot purchase more than 50 units of a single product per order!!");
+            }
+            totalQuantity += q;
+        }
+        if (totalQuantity > 50) {
+            throw new IllegalArgumentException("Error: Total order quantity cannot exceed 50 items!!");
+        }
+
+        // B. RATE LIMIT CHECK: Max 5 orders containing the same product in the last 1
+        // hour
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        List<Order> recentOrders = orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Order> orderInLastHour = recentOrders.stream()
+                .filter(o -> o.getCreatedAt().isAfter(oneHourAgo))
+                .toList();
+
+        for (CartItem cartItem : cartItems) {
+            Long productId = cartItem.getProduct().getId();
+            long matchCount = orderInLastHour.stream()
+                    .filter(o -> o.getItems().stream().anyMatch(item -> item.getProduct().getId().equals(productId)))
+                    .count();
+            if (matchCount >= 5) {
+                throw new IllegalArgumentException(
+                        "Error: Rate limit exceeded! You cannot place more than 5 orders for the same product ("
+                                + cartItem.getProduct().getName() + ") within 1 hour!!");
+            }
+        }
+
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
 
-        // Create the base order entity (save it first to obtain an ID)
+        // Create the base order entity(save it first to obtain an ID)
         Order order = Order.builder()
                 .user(user)
                 .shippingName(shippingName)
@@ -92,26 +128,7 @@ public class OrderService {
             ProductVariant variant = cartItem.getProductVariant();
             int quantity = cartItem.getQuantity();
 
-            // Real-time stock checks & allocation
-            if (variant != null) {
-                if (variant.getStock() < quantity) {
-                    throw new IllegalArgumentException("Error: Not enough stock for " +
-                            product.getName() + " (" + variant.getWoodType() + ")!!");
-                }
-                // Deduct stock on variant level
-                variant.setStock(variant.getStock() - quantity);
-                productVariantRepository.save(variant);
-            } else {
-                if (product.getStock() < quantity) {
-                    throw new IllegalArgumentException("Error: Not enough stock for " +
-                            product.getName() + "!!");
-                }
-                // Deduct Stock on product level
-                product.setStock(product.getStock() - quantity);
-                productRepository.save(product);
-            }
-
-            // Determine unit price based on variant or base product
+            // Determine unit price based on variant on base product
             BigDecimal unitPrice = (variant != null) ? variant.getPrice() : product.getPrice();
             BigDecimal itemTotal = unitPrice.multiply(new BigDecimal(quantity));
             totalAmount = totalAmount.add(itemTotal);
@@ -129,15 +146,15 @@ public class OrderService {
             orderItems.add(orderItem);
         }
 
-        // Finalize transacton pricing and linkage
+        // Finalize transaction pricing and linkage
         savedOrder.setItems(orderItems);
         savedOrder.setTotal(totalAmount);
-        Order finalizedOrder = orderRepository.save(savedOrder);
+        Order finalizeOrder = orderRepository.save(savedOrder);
 
-        // Wipe shopping cart cleanly (instantly evicts Upstash Redis cache as well!)
+        // Wipe shopping cart cleanly
         cartService.clearCart(user.getId());
 
-        return finalizedOrder;
+        return finalizeOrder;
     }
 
     // 4. "Buy Now" Direct Order: Bypass the cart completely to purchase a single
@@ -154,20 +171,27 @@ public class OrderService {
                     .orElseThrow(() -> new IllegalArgumentException("Error: Variant not found!!"));
         }
 
-        // Real-time stock check & deduction
-        if (variant != null) {
-            if (variant.getStock() < quantity) {
-                throw new IllegalArgumentException(
-                        "Error: Not enough stock for " + product.getName() + " (" + variant.getWoodType() + ")!!");
-            }
-            variant.setStock(variant.getStock() - quantity);
-            productVariantRepository.save(variant);
-        } else {
-            if (product.getStock() < quantity) {
-                throw new IllegalArgumentException("Error: Not enough stock for " + product.getName() + "!!");
-            }
-            product.setStock(product.getStock() - quantity);
-            productRepository.save(product);
+        // A. CAPPING CHECKS: Max 50 items total, and max 50 for any single item
+        if (quantity > 50) {
+            throw new IllegalArgumentException(
+                    "Error: Cannot purchase more than 50 units of a single product per order!!");
+        }
+
+        // B. RATE LIMIT CHECK: Max 5 orders containing the same product in the last 1
+        // hour
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        List<Order> recentOrders = orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Order> ordersInLastHour = recentOrders.stream()
+                .filter(o -> o.getCreatedAt().isAfter(oneHourAgo))
+                .toList();
+
+        long matchCount = ordersInLastHour.stream()
+                .filter(o -> o.getItems().stream().anyMatch(item -> item.getProduct().getId().equals(productId)))
+                .count();
+        if (matchCount >= 5) {
+            throw new IllegalArgumentException(
+                    "Error: Rate limit exceeded! You cannot place more than 5 orders for the same product ("
+                            + product.getName() + ") within 1 hour!!");
         }
 
         BigDecimal unitPrice = (variant != null) ? variant.getPrice() : product.getPrice();
@@ -214,6 +238,50 @@ public class OrderService {
             throw new IllegalArgumentException("Error: No items selected for checkout!!");
         }
 
+        List<CartItem> cartItems = new ArrayList<>();
+        int totalQuantity = 0;
+        for (Long cartItemId : cartItemIds) {
+            CartItem cartItem = cartItemRepository.findById(cartItemId)
+                    .orElseThrow(() -> new IllegalArgumentException("Error: Cart item " + cartItemId + " not found!!"));
+
+            // Ensures the cart item belongs to the checking-out user
+            if (!cartItem.getUser().getId().equals(user.getId())) {
+                throw new SecurityException("Error: Unauthorized cart item access!!");
+            }
+
+            int q = cartItem.getQuantity();
+            if (q > 50) {
+                throw new IllegalArgumentException(
+                        "Error: Cannot purchase more than 50 units of a single product per order!!");
+            }
+            totalQuantity += q;
+            cartItems.add(cartItem);
+        }
+
+        if (totalQuantity > 50) {
+            throw new IllegalArgumentException("Error: Total order quantity cannot exceed 50 items!!");
+        }
+
+        // B. RATE LIMIT CHECK: Max 5 orders containing the same product in the last 1
+        // hour
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        List<Order> recentOrders = orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Order> ordersInLastHour = recentOrders.stream()
+                .filter(o -> o.getCreatedAt().isAfter(oneHourAgo))
+                .toList();
+
+        for (CartItem cartItem : cartItems) {
+            Long productId = cartItem.getProduct().getId();
+            long matchCount = ordersInLastHour.stream()
+                    .filter(o -> o.getItems().stream().anyMatch(item -> item.getProduct().getId().equals(productId)))
+                    .count();
+            if (matchCount >= 5) {
+                throw new IllegalArgumentException(
+                        "Error: Rate limit exceeded! You cannot place more than 5 orders for the same product ("
+                                + cartItem.getProduct().getName() + ") within 1 hour!!");
+            }
+        }
+
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
 
@@ -235,40 +303,16 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        for (Long cartItemId : cartItemIds) {
-            CartItem cartItem = cartItemRepository.findById(cartItemId)
-                    .orElseThrow(() -> new IllegalArgumentException("Error: Cart item " + cartItemId + " not found!!"));
-
-            // Ensures the cart item belongs to the checking-out user
-            if (!cartItem.getUser().getId().equals(user.getId())) {
-                throw new SecurityException("Error: Unauthorized cart item access!!");
-            }
-
+        for (CartItem cartItem : cartItems) {
             Product product = cartItem.getProduct();
             ProductVariant variant = cartItem.getProductVariant();
             int quantity = cartItem.getQuantity();
-
-            // Real-time stock checks
-            if (variant != null) {
-                if (variant.getStock() < quantity) {
-                    throw new IllegalArgumentException(
-                            "Error: Not enough stock for " + product.getName() + " (" + variant.getWoodType() + ")!!");
-                }
-                variant.setStock(variant.getStock() - quantity);
-                productVariantRepository.save(variant);
-            } else {
-                if (product.getStock() < quantity) {
-                    throw new IllegalArgumentException("Error: Not enough stock for " + product.getName() + "!!");
-                }
-                product.setStock(product.getStock() - quantity);
-                productRepository.save(product);
-            }
 
             BigDecimal unitPrice = (variant != null) ? variant.getPrice() : product.getPrice();
             BigDecimal itemTotal = unitPrice.multiply(new BigDecimal(quantity));
             totalAmount = totalAmount.add(itemTotal);
 
-            // Construct OrderItem
+            // Contruct OrderItem
             OrderItem orderItem = OrderItem.builder()
                     .order(savedOrder)
                     .product(product)
@@ -283,21 +327,41 @@ public class OrderService {
 
         savedOrder.setItems(orderItems);
         savedOrder.setTotal(totalAmount);
-        Order finalizedOrder = orderRepository.save(savedOrder);
+        Order finalizeOrder = orderRepository.save(savedOrder);
 
-        // Delete ONLY the selected cart items from Neon DB, and evict the Redis cache
-        // key
+        // Delete ONLY the selected cart items from NeonDB
         for (Long cartItemId : cartItemIds) {
             cartItemRepository.deleteById(cartItemId);
         }
 
-        // Evict active Redis cache to force fresh reload of the remaining cart items
+        // Evict active Redis cache
         try {
-            cartService.clearCart(user.getId());// Invalid cache
+            cartService.clearCart(user.getId());
         } catch (Exception e) {
             // Fail silently
         }
 
-        return finalizedOrder;
+        return finalizeOrder;
+    }
+
+    // 6. Retrieve all orders in the system, sorted by newest first (Admin view)
+    public List<Order> getAllOrdersSorted() {
+        return orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    // 7. Fetch order details without user ownership checks (Admin view)
+    public Order getOrderDetailsForAdmin(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Error: Order not found with ID: " + orderId));
+    }
+
+    // 8. Update order status directly (without stock inventory tracking)
+    public Order updateOrderStatus(Long orderId, OrderStatus newStatus) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Error: Order not found with ID: " + orderId));
+
+        order.setStatus(newStatus);
+        order.setUpdatedAt(LocalDateTime.now());
+        return orderRepository.save(order);
     }
 }
