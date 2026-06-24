@@ -128,15 +128,15 @@ Each entry notes the direction of change (**Positive**, **Negative**, or **Neutr
 
 ## 9. Oracle Cloud Compute Shape (VM Server)
 
-*   **Date Logged:** May 30, 2026
+*   **Date Logged:** June 24, 2026
 *   **Source Document:** `CLOUD_SETUP_GUIDE.md` (Step 2)
 *   **Documented Limit / Shape:** `VM.Standard.A1.Flex` (Always-Free ARM) with 4 OCPUs and 24 GB RAM.
-*   **Actual Console Limit / Shape:** `VM.Standard.E2.1.Micro` (Always-Free AMD) with 1 OCPU and 1 GB RAM (due to OCI Mumbai region Ampere resource capacity exhaustion).
-*   **Difference Direction:** 🔴 **Negative (Resource Capacity Change)**
-*   **Impact Analysis:**
+*   **Actual Console Limit / Shape:** `VM.Standard.A1.Flex` (Always-Free ARM) with **2 OCPUs and 12 GB RAM** (successfully provisioned/upgraded from AMD shape).
+*   **Difference Direction:** 🟢 **Positive (Upgraded Resource Capacity)**
+*   **Impact Analysis:** 
     *   **Financial Impact:** $0/month (unaffected, still falls 100% inside Always-Free tier limits).
-    *   **Functional Impact:** The backend runs on 1 OCPU / 1 GB RAM instead of 4 OCPUs / 24 GB RAM.
-    *   **Mitigation & Optimizations:** Fully optimized. We tuned the Spring Boot JVM to run with a tiny heap footprint (`-Xmx350m` maximum heap size and `-XX:+UseZGC`), keeping total physical memory usage under ~550 MB. Because Neon PostgreSQL (database) and Upstash Redis (caching) are serverless, they utilize **0%** of our VM's CPU and RAM! Additionally, this shape can be seamlessly upgraded to the Ampere shape at a later date directly in the OCI Console without data loss or downtime.
+    *   **Functional Impact:** The backend is now running on a powerful 2 OCPUs and 12 GB RAM environment.
+    *   **Mitigation & Optimizations:** Fully optimized. We upgraded the JVM allocation settings (`JAVA_OPTS`) to target **4 GB Max Heap** (`-Xmx4g -Xms2g`) and kept `-XX:+UseZGC` for low-latency garbage collection. This provides massive headroom for incoming API traffic, request threads, and Caffeine cache memory. We also keep database connection pooling optimized (pool size of 3-5) to fit within Neon PostgreSQL free tier limits.
 
 
 

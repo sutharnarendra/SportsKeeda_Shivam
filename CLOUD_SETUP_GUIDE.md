@@ -245,7 +245,7 @@ To resolve **Gap #3 (Plaintext `/etc/environment` security risk)**, do not store
    
    # Auth & Performance
    JWT_SECRET="your-64-character-jwt-secret-key-here"
-   JAVA_OPTS="-Xmx350m -Xms256m -XX:+UseZGC -XX:MaxMetaspaceSize=96m"
+   JAVA_OPTS="-Xmx4g -Xms2g -XX:+UseZGC -XX:MaxMetaspaceSize=256m"
    ```
    Save (`Ctrl+O`) and Exit (`Ctrl+X`).
 
