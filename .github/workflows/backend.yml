@@ -1,4 +1,4 @@
-name: Yatra X Backend CI/CD (Blue-Green via Worker)
+name: Yatra X Backend CI/CD (Blue-Green via Pages)
 
 on:
   push:
@@ -34,13 +34,13 @@ jobs:
       # ════════════════════════════════════════════════════════════════════════
       # STEP 1: ROUTE ALL TRAFFIC TO STANDBY AMD VM (BLUE)
       # ════════════════════════════════════════════════════════════════════════
-      - name: Shift Worker to AMD (Blue)
+      - name: Shift Pages Proxy to AMD (Blue)
         run: |
-          echo "Updating Cloudflare Worker BACKEND_IP to AMD Server: ${{ secrets.ORACLE_AMD_IP }}"
-          curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/services/yatrax-api/environments/production/variables/BACKEND_IP" \
+          echo "Updating Cloudflare Pages BACKEND_IP to AMD Server: ${{ secrets.ORACLE_AMD_IP }}"
+          curl -s -X PATCH "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/sportskeeda-frontend-shivam" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data '{"type":"plain_text","text":"${{ secrets.ORACLE_AMD_IP }}"}' \
+            --data '{"deployment_configs":{"production":{"env_vars":{"BACKEND_IP":{"value":"${{ secrets.ORACLE_AMD_IP }}"}}},"preview":{"env_vars":{"BACKEND_IP":{"value":"${{ secrets.ORACLE_AMD_IP }}"}}}}}' \
             | jq .
 
       # ════════════════════════════════════════════════════════════════════════
@@ -101,13 +101,13 @@ jobs:
       # ════════════════════════════════════════════════════════════════════════
       # STEP 3: ROUTE TRAFFIC TO AMPERE VM (GREEN) ON SUCCESS
       # ════════════════════════════════════════════════════════════════════════
-      - name: Shift Worker to Ampere (Green)
+      - name: Shift Pages Proxy to Ampere (Green)
         run: |
-          echo "Updating Cloudflare Worker BACKEND_IP to Ampere Server: ${{ secrets.ORACLE_AMPERE_IP }}"
-          curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/services/yatrax-api/environments/production/variables/BACKEND_IP" \
+          echo "Updating Cloudflare Pages BACKEND_IP to Ampere Server: ${{ secrets.ORACLE_AMPERE_IP }}"
+          curl -s -X PATCH "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/sportskeeda-frontend-shivam" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data '{"type":"plain_text","text":"${{ secrets.ORACLE_AMPERE_IP }}"}' \
+            --data '{"deployment_configs":{"production":{"env_vars":{"BACKEND_IP":{"value":"${{ secrets.ORACLE_AMPERE_IP }}"}}},"preview":{"env_vars":{"BACKEND_IP":{"value":"${{ secrets.ORACLE_AMPERE_IP }}"}}}}}' \
             | jq .
 
       # ════════════════════════════════════════════════════════════════════════
