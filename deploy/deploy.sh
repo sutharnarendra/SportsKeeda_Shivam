@@ -13,10 +13,17 @@ if [ -f "$APP_DIR/backend.jar" ]; then
     cp "$APP_DIR/backend.jar" "$APP_DIR/backend.jar.bak"
 fi
 
+# Dynamically detect VM user (opc or ubuntu)
+if id "opc" &>/dev/null; then
+    VM_USER="opc"
+else
+    VM_USER="ubuntu"
+fi
+
 # Step 2: Swap the JAR file
 echo "Installing new JAR version..."
 mv "$TEMP_DIR/backend-0.0.1-SNAPSHOT.jar" "$APP_DIR/backend.jar"
-chown opc:opc "$APP_DIR/backend.jar"
+chown $VM_USER:$VM_USER "$APP_DIR/backend.jar"
 
 # Step 3: Restart systemd service
 echo "Restarting service..."
@@ -53,7 +60,7 @@ if [ $IS_UP -eq 0 ]; then
     
     if [ -f "$APP_DIR/backend.jar.bak" ]; then
         mv "$APP_DIR/backend.jar.bak" "$APP_DIR/backend.jar"
-        chown opc:opc "$APP_DIR/backend.jar"
+        chown $VM_USER:$VM_USER "$APP_DIR/backend.jar"
         systemctl restart $SERVICE_NAME
         echo "Rollback successful. Restored previous stable version."
     else

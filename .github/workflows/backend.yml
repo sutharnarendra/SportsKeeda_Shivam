@@ -117,17 +117,17 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.ORACLE_AMD_IP }}
-          username: opc
+          username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
             sudo mkdir -p /opt/yatrax/deploy-temp
-            sudo chown -R opc:opc /opt/yatrax
+            sudo chown -R ubuntu:ubuntu /opt/yatrax
 
       - name: Copy Deployment Configs & JAR to AMD VM
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.ORACLE_AMD_IP }}
-          username: opc
+          username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
           port: 22
           source: "backend/target/backend-0.0.1-SNAPSHOT.jar,deploy/deploy.sh,deploy/yatrax.service"
@@ -140,7 +140,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.ORACLE_AMD_IP }}
-          username: opc
+          username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
             set -e
@@ -149,10 +149,11 @@ jobs:
             # Setup deployment script
             sudo cp /opt/yatrax/deploy-temp/deploy/deploy.sh /opt/yatrax/deploy.sh
             sudo chmod +x /opt/yatrax/deploy.sh
-            sudo chown opc:opc /opt/yatrax/deploy.sh
+            sudo chown ubuntu:ubuntu /opt/yatrax/deploy.sh
 
-            # Setup systemd service
+            # Setup systemd service (replace User=opc with User=ubuntu for AMD VM)
             sudo cp /opt/yatrax/deploy-temp/deploy/yatrax.service /etc/systemd/system/yatrax.service
+            sudo sed -i 's/User=opc/User=ubuntu/g' /etc/systemd/system/yatrax.service
             sudo chown root:root /etc/systemd/system/yatrax.service
             
             # Copy new JAR version to temp landing area
