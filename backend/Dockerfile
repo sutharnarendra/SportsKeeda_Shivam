@@ -19,5 +19,8 @@ COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 # Expose Spring Boot's Tomcat port
 EXPOSE 8080
 
-# Run with G1 Garbase Collection optimized for production JVM workloads
-ENTRYPOINT [ "java", "-XX:+UseG1GC", "-jar", "app.jar" ]
+# Set default JVM options suited for the 12GB RAM Ampere shape
+ENV JAVA_OPTS="-Xmx4g -Xms2g -XX:+UseZGC -XX:MaxMetaspaceSize=256m"
+
+# Run with ZGC and support dynamic JAVA_OPTS environment variable overrides
+ENTRYPOINT [ "sh", "-c", "java $JAVA_OPTS -jar app.jar" ]
