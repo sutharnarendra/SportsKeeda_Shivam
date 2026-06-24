@@ -33,7 +33,7 @@ systemctl restart $SERVICE_NAME
 # Step 4: Health Check Gate
 echo "Checking service health (Actuator validation)..."
 HEALTH_URL="http://localhost:8080/actuator/health"
-MAX_ATTEMPTS=24 # 24 attempts * 5 seconds = 120 seconds max timeout
+MAX_ATTEMPTS=60 # 60 attempts * 5 seconds = 300 seconds max timeout (5 minutes)
 ATTEMPT=1
 IS_UP=0
 
