@@ -1,4 +1,4 @@
-name: Yatra X Backend CI/CD (Blue-Green)
+name: Yatra X Backend CI/CD (Blue-Green via Worker)
 
 on:
   push:
@@ -34,35 +34,13 @@ jobs:
       # ════════════════════════════════════════════════════════════════════════
       # STEP 1: ROUTE ALL TRAFFIC TO STANDBY AMD VM (BLUE)
       # ════════════════════════════════════════════════════════════════════════
-      - name: Shift DNS to AMD (Blue)
+      - name: Shift Worker to AMD (Blue)
         run: |
-          echo "Fetching Cloudflare Zone ID for yatrax.in..."
-          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=yatrax.in" \
+          echo "Updating Cloudflare Worker BACKEND_IP to AMD Server: ${{ secrets.ORACLE_AMD_IP }}"
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/services/yatrax-api/environments/production/variables/BACKEND_IP" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            | jq -r '.result[0].id')
-
-          if [ "$ZONE_ID" = "null" ] || [ -z "$ZONE_ID" ]; then
-            echo "Error: Could not retrieve Zone ID from Cloudflare!"
-            exit 1
-          fi
-
-          echo "Fetching Cloudflare DNS Record ID for api.yatrax.in..."
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=api.yatrax.in" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            | jq -r '.result[0].id')
-          
-          if [ "$RECORD_ID" = "null" ] || [ -z "$RECORD_ID" ]; then
-            echo "Error: Could not retrieve DNS Record ID from Cloudflare!"
-            exit 1
-          fi
-          
-          echo "Updating api.yatrax.in to point to AMD Server: ${{ secrets.ORACLE_AMD_IP }}"
-          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data '{"type":"A","name":"api.yatrax.in","content":"${{ secrets.ORACLE_AMD_IP }}","ttl":1,"proxied":true}' \
+            --data '{"type":"plain_text","text":"${{ secrets.ORACLE_AMD_IP }}"}' \
             | jq .
 
       # ════════════════════════════════════════════════════════════════════════
@@ -123,30 +101,13 @@ jobs:
       # ════════════════════════════════════════════════════════════════════════
       # STEP 3: ROUTE TRAFFIC TO AMPERE VM (GREEN) ON SUCCESS
       # ════════════════════════════════════════════════════════════════════════
-      - name: Shift DNS to Ampere (Green)
+      - name: Shift Worker to Ampere (Green)
         run: |
-          echo "Fetching Cloudflare Zone ID for yatrax.in..."
-          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=yatrax.in" \
+          echo "Updating Cloudflare Worker BACKEND_IP to Ampere Server: ${{ secrets.ORACLE_AMPERE_IP }}"
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/services/yatrax-api/environments/production/variables/BACKEND_IP" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            | jq -r '.result[0].id')
-
-          if [ "$ZONE_ID" = "null" ] || [ -z "$ZONE_ID" ]; then
-            echo "Error: Could not retrieve Zone ID from Cloudflare!"
-            exit 1
-          fi
-
-          echo "Fetching Cloudflare DNS Record ID for api.yatrax.in..."
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=api.yatrax.in" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            | jq -r '.result[0].id')
-          
-          echo "Updating api.yatrax.in to point to Ampere Server: ${{ secrets.ORACLE_AMPERE_IP }}"
-          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data '{"type":"A","name":"api.yatrax.in","content":"${{ secrets.ORACLE_AMPERE_IP }}","ttl":1,"proxied":true}' \
+            --data '{"type":"plain_text","text":"${{ secrets.ORACLE_AMPERE_IP }}"}' \
             | jq .
 
       # ════════════════════════════════════════════════════════════════════════
