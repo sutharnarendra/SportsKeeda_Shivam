@@ -1,0 +1,17 @@
+[Unit]
+Description=Yatra X Spring Boot Application
+After=network.target
+
+[Service]
+User=opc
+WorkingDirectory=/opt/yatrax
+# Read variables from the restricted 600-permission file
+EnvironmentFile=/etc/yatrax/.env
+# High performance ZGC VM tuning parameters (dynamically overrides defaults via env-file if specified)
+ExecStart=/usr/bin/java $JAVA_OPTS -jar /opt/yatrax/backend.jar --spring.profiles.active=production
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

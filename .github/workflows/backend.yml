@@ -1,4 +1,4 @@
-name: Yatra X Backend CI/CD
+name: Yatra X Backend CI/CD (Blue-Green)
 
 on:
   push:
@@ -31,60 +31,153 @@ jobs:
           chmod +x mvnw
           ./mvnw clean package -DskipTests
 
-      - name: Prepare Remote Directory
+      # ════════════════════════════════════════════════════════════════════════
+      # STEP 1: ROUTE ALL TRAFFIC TO STANDBY AMD VM (BLUE)
+      # ════════════════════════════════════════════════════════════════════════
+      - name: Shift DNS to AMD (Blue)
+        run: |
+          echo "Fetching Cloudflare DNS Record ID for api.yatrax.in..."
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=api.yatrax.in" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            | jq -r '.result[0].id')
+          
+          if [ "$RECORD_ID" = "null" ] || [ -z "$RECORD_ID" ]; then
+            echo "Error: Could not retrieve DNS Record ID from Cloudflare!"
+            exit 1
+          fi
+          
+          echo "Updating api.yatrax.in to point to AMD Server: ${{ secrets.ORACLE_AMD_IP }}"
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/$RECORD_ID" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"type":"A","name":"api.yatrax.in","content":"${{ secrets.ORACLE_AMD_IP }}","ttl":1,"proxied":true}' \
+            | jq .
+
+      # ════════════════════════════════════════════════════════════════════════
+      # STEP 2: DEPLOY LATEST CODE TO AMPERE VM (GREEN) AND CONFIGURE SERVER
+      # ════════════════════════════════════════════════════════════════════════
+      - name: Prepare Ampere Server Directories
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.ORACLE_VM_IP }}
-          username: ubuntu
+          host: ${{ secrets.ORACLE_AMPERE_IP }}
+          username: opc
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
             sudo mkdir -p /opt/yatrax/deploy-temp
-            sudo chown ubuntu:ubuntu /opt/yatrax/deploy-temp
+            sudo chown -R opc:opc /opt/yatrax
 
-      - name: Copy JAR to Oracle VM
+      - name: Copy Deployment Configs & JAR to Ampere VM
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.ORACLE_VM_IP }}
-          username: ubuntu
+          host: ${{ secrets.ORACLE_AMPERE_IP }}
+          username: opc
           key: ${{ secrets.ORACLE_SSH_KEY }}
           port: 22
-          source: "backend/target/backend-0.0.1-SNAPSHOT.jar"
+          source: "backend/target/backend-0.0.1-SNAPSHOT.jar,deploy/deploy.sh,deploy/yatrax.service"
           target: "/opt/yatrax/deploy-temp/"
-          strip_components: 2
+          strip_components: 0
           overwrite: true
           timeout: 120s
 
-      - name: Deploy JAR and Restart Service
+      - name: Execute Deploy & Setup on Ampere VM
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.ORACLE_VM_IP }}
-          username: ubuntu
+          host: ${{ secrets.ORACLE_AMPERE_IP }}
+          username: opc
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
             set -e
-            echo "=== Deploying Yatra X Backend ==="
+            echo "Installing configurations on Ampere VM..."
+            
+            # Setup deployment script
+            sudo cp /opt/yatrax/deploy-temp/deploy/deploy.sh /opt/yatrax/deploy.sh
+            sudo chmod +x /opt/yatrax/deploy.sh
+            sudo chown opc:opc /opt/yatrax/deploy.sh
 
-            # Move JAR to application directory (matches systemd ExecStart path)
-            sudo mkdir -p /opt/yatrax
-            sudo cp /opt/yatrax/deploy-temp/backend-0.0.1-SNAPSHOT.jar /opt/yatrax/backend.jar
-            sudo chown ubuntu:ubuntu /opt/yatrax/backend.jar
+            # Setup systemd service
+            sudo cp /opt/yatrax/deploy-temp/deploy/yatrax.service /etc/systemd/system/yatrax.service
+            sudo chown root:root /etc/systemd/system/yatrax.service
+            
+            # Copy new JAR version to temp landing area for deploy script
+            sudo cp /opt/yatrax/deploy-temp/backend/target/backend-0.0.1-SNAPSHOT.jar /opt/yatrax/deploy-temp/backend-0.0.1-SNAPSHOT.jar
 
-            # Restart the systemd service (or start if first run)
-            if systemctl is-active --quiet yatrax.service; then
-              echo "Restarting yatrax.service..."
-              sudo systemctl restart yatrax.service
-            else
-              echo "Starting yatrax.service for the first time..."
-              sudo systemctl daemon-reload
-              sudo systemctl enable yatrax.service
-              sudo systemctl start yatrax.service
-            fi
+            # Clean temporary directories
+            sudo rm -rf /opt/yatrax/deploy-temp/deploy
+            sudo rm -rf /opt/yatrax/deploy-temp/backend
 
-            # Wait a few seconds and check status
-            sleep 5
-            sudo systemctl status yatrax.service --no-pager || true
+            # Execute self-healing deployment script
+            sudo /opt/yatrax/deploy.sh
 
-            # Cleanup temp
-            sudo rm -rf /opt/yatrax/deploy-temp
+      # ════════════════════════════════════════════════════════════════════════
+      # STEP 3: ROUTE TRAFFIC TO AMPERE VM (GREEN) ON SUCCESS
+      # ════════════════════════════════════════════════════════════════════════
+      - name: Shift DNS to Ampere (Green)
+        run: |
+          echo "Fetching Cloudflare DNS Record ID for api.yatrax.in..."
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=api.yatrax.in" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            | jq -r '.result[0].id')
+          
+          echo "Updating api.yatrax.in to point to Ampere Server: ${{ secrets.ORACLE_AMPERE_IP }}"
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/$RECORD_ID" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"type":"A","name":"api.yatrax.in","content":"${{ secrets.ORACLE_AMPERE_IP }}","ttl":1,"proxied":true}' \
+            | jq .
 
-            echo "=== Deployment complete ==="
+      # ════════════════════════════════════════════════════════════════════════
+      # STEP 4: UPDATE AMD STANDBY VM (BLUE) WITH LATEST STABLE CODE
+      # ════════════════════════════════════════════════════════════════════════
+      - name: Prepare AMD Server Directories
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_AMD_IP }}
+          username: opc
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            sudo mkdir -p /opt/yatrax/deploy-temp
+            sudo chown -R opc:opc /opt/yatrax
+
+      - name: Copy Deployment Configs & JAR to AMD VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ORACLE_AMD_IP }}
+          username: opc
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
+          source: "backend/target/backend-0.0.1-SNAPSHOT.jar,deploy/deploy.sh,deploy/yatrax.service"
+          target: "/opt/yatrax/deploy-temp/"
+          strip_components: 0
+          overwrite: true
+          timeout: 120s
+
+      - name: Execute Deploy & Setup on AMD VM
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_AMD_IP }}
+          username: opc
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            set -e
+            echo "Installing configurations on AMD VM..."
+            
+            # Setup deployment script
+            sudo cp /opt/yatrax/deploy-temp/deploy/deploy.sh /opt/yatrax/deploy.sh
+            sudo chmod +x /opt/yatrax/deploy.sh
+            sudo chown opc:opc /opt/yatrax/deploy.sh
+
+            # Setup systemd service
+            sudo cp /opt/yatrax/deploy-temp/deploy/yatrax.service /etc/systemd/system/yatrax.service
+            sudo chown root:root /etc/systemd/system/yatrax.service
+            
+            # Copy new JAR version to temp landing area
+            sudo cp /opt/yatrax/deploy-temp/backend/target/backend-0.0.1-SNAPSHOT.jar /opt/yatrax/deploy-temp/backend-0.0.1-SNAPSHOT.jar
+
+            # Clean temporary directories
+            sudo rm -rf /opt/yatrax/deploy-temp/deploy
+            sudo rm -rf /opt/yatrax/deploy-temp/backend
+
+            # Execute self-healing deployment script
+            sudo /opt/yatrax/deploy.sh
