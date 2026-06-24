@@ -36,8 +36,19 @@ jobs:
       # ════════════════════════════════════════════════════════════════════════
       - name: Shift DNS to AMD (Blue)
         run: |
+          echo "Fetching Cloudflare Zone ID for yatrax.in..."
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=yatrax.in" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            | jq -r '.result[0].id')
+
+          if [ "$ZONE_ID" = "null" ] || [ -z "$ZONE_ID" ]; then
+            echo "Error: Could not retrieve Zone ID from Cloudflare!"
+            exit 1
+          fi
+
           echo "Fetching Cloudflare DNS Record ID for api.yatrax.in..."
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=api.yatrax.in" \
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=api.yatrax.in" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             | jq -r '.result[0].id')
@@ -48,7 +59,7 @@ jobs:
           fi
           
           echo "Updating api.yatrax.in to point to AMD Server: ${{ secrets.ORACLE_AMD_IP }}"
-          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/$RECORD_ID" \
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data '{"type":"A","name":"api.yatrax.in","content":"${{ secrets.ORACLE_AMD_IP }}","ttl":1,"proxied":true}' \
@@ -114,14 +125,25 @@ jobs:
       # ════════════════════════════════════════════════════════════════════════
       - name: Shift DNS to Ampere (Green)
         run: |
+          echo "Fetching Cloudflare Zone ID for yatrax.in..."
+          ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=yatrax.in" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            | jq -r '.result[0].id')
+
+          if [ "$ZONE_ID" = "null" ] || [ -z "$ZONE_ID" ]; then
+            echo "Error: Could not retrieve Zone ID from Cloudflare!"
+            exit 1
+          fi
+
           echo "Fetching Cloudflare DNS Record ID for api.yatrax.in..."
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records?name=api.yatrax.in" \
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=api.yatrax.in" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             | jq -r '.result[0].id')
           
           echo "Updating api.yatrax.in to point to Ampere Server: ${{ secrets.ORACLE_AMPERE_IP }}"
-          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/dns_records/$RECORD_ID" \
+          curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data '{"type":"A","name":"api.yatrax.in","content":"${{ secrets.ORACLE_AMPERE_IP }}","ttl":1,"proxied":true}' \
